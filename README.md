@@ -11,16 +11,17 @@ Built for people in the Bay Area startup scene (job seekers, marketers, founders
 1. **Upload** audio (.m4a, .mp3, .wav) or a transcript (.txt, .srt, .vtt). Pasting text also works. Subtitle timestamps are stripped automatically.
 2. **Pick who you're writing as**:
    - **Job seeker**: shows how you think, so hiring managers notice.
-   - **Marketer**: puts the spotlight on the company or product behind the event (most Bay Area events exist to promote the host or the companies it features). Names the product, shows one concrete thing it does, ends with a light call to try it.
+   - **Marketer**: puts the spotlight on the company or product behind the event (most Bay Area events exist to promote the host or the companies it features). Names the product and shows one concrete thing it does.
    - **Founder**: takes a clear position tied to what they are building, earning trust from customers, hires and investors, without pitching the product.
    - For Marketer, you can name the company or product to spotlight. Left blank, the host or the most-discussed company in the transcript is used.
 3. **Type your one line** (up to 140 characters). Pasting is disabled in this field on purpose: the line has to be written by you, and everything else is built around it.
 4. **Name the event and tag it**: type the event name however you call it. The posts judge how to use it: a recognizable public name may be mentioned once, while a private label (dates, abbreviations) is turned into a natural description instead of being copied. Industry and function tags are suggested from the transcript and can be changed.
-5. **Get your posts** in two tabs:
+5. **Choose how posts end**: the "End with a suggestion" switch is off by default, so posts end on your own thought with no ask. Turn it on for one short call to action that fits your role (try the product, talk with people working on this, join people who care about the problem). Flipping it on the results screen rewrites the current post.
+6. **Get your posts** in two tabs:
    - **X**: one short post, your line polished to sound native to X (ideally under 140 characters). "Copy & open X" opens the composer with it filled in.
    - **LinkedIn**: one post with a preview of what shows before "see more" and a character count.
    - Rewrites: Shorter / Punchier / Drier / Another take on X; Shorter / Sharper opening / More personal / More casual on LinkedIn.
-6. **My lines**: every line you have written, with date, event and tags. Filter by industry or function, see where your thinking concentrates, and reopen the posts made from any line.
+7. **My lines**: every line you have written, with date, event and tags. Filter by industry or function, see where your thinking concentrates, and reopen the posts made from any line.
 
 Design: monochrome, one large stage panel with a column of cards on the right. Light and dark themes.
 

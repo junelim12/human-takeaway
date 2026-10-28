@@ -200,6 +200,16 @@ button { cursor: pointer; }
 .empty-lib { flex: 1; display: grid; place-content: center; text-align: center; gap: 8px; color: var(--muted); min-height: 260px; }
 .empty-lib .big { font-size: 22px; color: var(--ink); }
 
+.switch { display: flex; justify-content: space-between; align-items: center; gap: 14px; cursor: pointer; }
+.switch .t { font-weight: 500; }
+.switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.switch i { flex: none; width: 44px; height: 26px; border-radius: 13px; background: var(--panel-2); position: relative; transition: background .15s; }
+.switch i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--sheet); box-shadow: 0 1px 2px rgba(0,0,0,.2); transition: transform .15s; }
+.switch input:checked + i { background: var(--btn); }
+.switch input:checked + i::after { transform: translateX(18px); }
+.switch input:focus-visible + i { outline: 2px solid var(--ink); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .switch i, .switch i::after { transition: none; } }
+
 .toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--btn); color: var(--btn-ink); padding: 10px 18px; border-radius: 999px; font-size: 14px; z-index: 30; max-width: calc(100% - 32px); }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .guide { display: grid; gap: 10px; }
@@ -235,7 +245,7 @@ const KEY = "debrief.v2";
 const INDUSTRIES = ["AI / ML", "Fintech", "Climate", "Health", "Consumer", "B2B SaaS", "Dev tools", "Crypto", "Hardware", "Media"];
 const FUNCTIONS = ["Product", "Engineering", "Design", "Marketing", "Sales / GTM", "Founding", "Investing", "Ops / People"];
 const blankMeta = () => ({ event: "", industries: [], functions: [], suggested: false });
-const blank = () => ({ role: "job", company: "", source: null, takeaway: "", typed: false, meta: blankMeta(), out: null, tab: "x", lib: null });
+const blank = () => ({ role: "job", company: "", cta: false, source: null, takeaway: "", typed: false, meta: blankMeta(), out: null, tab: "x", lib: null });
 const exampleLib = () => {
   const d = (n) => Date.now() - n * 86400e3;
   return [
@@ -284,7 +294,6 @@ function errCopy(e) {
 const NO = `Never use: em dashes, "thrilled", "excited to share", "humbled", "game-changer", "delve", "unlock", "leverage", "in today's fast-paced world", "Here's the thing", "Let that sink in", "Agree?", emoji bullets. Never invent facts, names, numbers or quotes that are not in the transcript or the writer's line.`;
 
 const PLAIN = `KEEP IT PLAIN AND HONEST.
-- Do not end by asking readers what they think. No closing question to the audience ("What about you?", "How do you handle this?", "Thoughts?"). End on the writer's own last thought.
 - Cut anything obvious: if most readers would already agree without thinking, it is not worth a line.
 - Cut anything that only makes sense to someone who was in the room: references to specific people, products, side debates or situations from the transcript that would need explaining. If a detail needs a sentence of context, drop it.
 - No inflated stakes. Size the language to the size of the idea. Avoid "changed how I think about everything", "the future of", "this is huge", "I haven't stopped thinking about", "a masterclass", "everyone needs to hear this".
@@ -337,7 +346,7 @@ function spotlightBlock() {
   if (S.role !== "mkt") return "";
   const co = (S.company || "").trim();
   const who = co ? `SPOTLIGHT: "${co}". Use this exact name.` : "SPOTLIGHT: not given. Identify the company or product that hosted the event or is discussed most in the transcript and use its name as it appears there. If none is clear, keep the focus on the idea and name no company.";
-  const tweak = "ROLE OVERRIDES: Ending with a short, light call to try or look at the product is allowed. The company or product must be named in both the X post and the LinkedIn post.";
+  const tweak = "ROLE OVERRIDES: The company or product must be named in both the X post and the LinkedIn post.";
   return who + "\n" + tweak;
 }
 
@@ -353,12 +362,19 @@ Decide how to use it:
 - LinkedIn: weave it in once as setting, ideally in the first few lines, never as the hook's subject.`;
 }
 
+function ctaRule() {
+  if (!S.cta) return "ENDING: No call to action and no question to readers. Do not ask what they think, and do not tell them to try, follow, comment, DM or reach out. End on the writer's own last thought.";
+  const fit = { job: "an open door to talk with people working on this", mkt: "a light nudge to try or look at the product", founder: "an invitation to people who care about this problem" }[S.role] || "a light, natural next step";
+  return `ENDING: Close with one short, natural call to action: ${fit}. One line, never pushy. No "Agree?", "Thoughts?" or engagement bait. On X, keep it to a few words or fold it into the post.`;
+}
+
 function context() {
   const r = ROLES[S.role];
   const tx = S.source.text.length > 60000 ? S.source.text.slice(0, 60000) + "\n[transcript truncated]" : S.source.text;
   return `WRITER: ${r.angle}
 ${eventBlock()}
 ${spotlightBlock()}
+${ctaRule()}
 ${S.meta.industries.length || S.meta.functions.length ? `TOPIC AREAS: ${[...S.meta.industries, ...S.meta.functions].join(", ")}` : ""}
 
 THE WRITER'S OWN LINE (the thesis; keep its meaning, you may sharpen the wording):
@@ -407,6 +423,7 @@ function refinePrompt(how) {
 
 The writer is ${r.angle}
 ${spotlightBlock()}
+${ctaRule()}
 Their own line: "${S.takeaway}".
 
 Rewrite the draft below. Change requested: ${how}
@@ -555,11 +572,16 @@ function composeView() {
       ${S.role === "mkt" ? `<div class="field"><label for="co" class="hint">Company or product to spotlight</label><input id="co" type="text" maxlength="60" value="${esc(S.company || "")}" placeholder="e.g. Lovable"><span class="hint">Leave blank to use the host or the company talked about most.</span></div>` : ""}
     </fieldset>
     <div class="card">
+      ${ctaSwitch("cta")}
       <div class="meta"><span>Output: X post + LinkedIn post</span><span class="num">${[!!(s && s.text), !!S.takeaway.trim(), true].filter(Boolean).length}/3 ready</span></div>
       ${error ? `<div class="err">${esc(error)}</div>` : ""}
       <button class="go" id="go" type="button" ${ready() && !busy ? "" : "disabled"}>${busy ? "writing…" : "write posts."}</button>
     </div>
   </aside>`;
+}
+
+function ctaSwitch(id) {
+  return `<label class="switch" for="${id}"><span><span class="t">End with a suggestion</span><br><span class="hint">${S.cta ? "Posts close with a light call to action." : "Off: posts end on your own thought, with no ask."}</span></span><input type="checkbox" role="switch" id="${id}" data-cta ${S.cta ? "checked" : ""} ${refining || busy ? "disabled" : ""}><i aria-hidden="true"></i></label>`;
 }
 
 function metaCard() {
@@ -622,6 +644,7 @@ function resultView() {
     </div>
     <div class="card">
       <div class="cap">Adjust the post</div>
+      ${ctaSwitch("cta2")}
       <div class="chips">
         ${(isX
           ? [["Shorter", "Cut it to the fewest words that still land."], ["Punchier", "Make it hit harder: a stronger verb, a sharper contrast."], ["Drier", "Make it drier and more deadpan, a little funny."], ["Another take", "Write a different version of the same line, with a different angle."]]
@@ -761,6 +784,22 @@ function bind() {
   }
   document.querySelectorAll('input[name="role"]').forEach(r => r.addEventListener("change", () => { S.role = r.value; save(); render(); }));
   $("#co")?.addEventListener("input", e => { S.company = e.target.value; save(); });
+  document.querySelectorAll("[data-cta]").forEach(c => c.addEventListener("change", async () => {
+    S.cta = c.checked; save();
+    if (mode === "result" && S.out && !busy && !refining) {
+      // apply to the current tab right away
+      const how = S.cta ? "Add one short, natural call to action at the end, as described under ENDING." : "Remove any call to action or question to readers at the end. End on the writer's own last thought.";
+      refining = true; render();
+      try {
+        const r = await ask(refinePrompt(how), { json: true });
+        if (S.tab === "x" && Array.isArray(r && r.x) && r.x.length) S.out.x = r.x.map(String).slice(0, 1);
+        else if (S.tab === "li" && r && r.linkedin) S.out.linkedin = String(r.linkedin).trim();
+        else throw { code: "invalid_json" };
+        save(); toast(S.cta ? "Added a call to action" : "Removed the call to action");
+      } catch (e) { toast(errCopy(e)); }
+      refining = false; render();
+    } else render();
+  }));
   $("#go")?.addEventListener("click", write);
   $("#ev")?.addEventListener("input", e => { S.meta.event = e.target.value; save(); });
   document.querySelectorAll("[data-tag]").forEach(b => b.addEventListener("click", () => {
@@ -842,7 +881,7 @@ async function write() {
 $("#file").addEventListener("change", e => { pasting = false; takeFile(e.target.files[0]); e.target.value = ""; });
 $("#lib").addEventListener("click", () => { mode = mode === "library" ? (S.out ? "result" : "compose") : "library"; render(); window.scrollTo(0, 0); });
 $("#how").addEventListener("click", () => { guideOpen = !guideOpen; $("#how").setAttribute("aria-expanded", String(guideOpen)); if (mode !== "compose") mode = "compose"; render(); });
-$("#restart").addEventListener("click", () => { const role = S.role, lib = S.lib, company = S.company; S = blank(); S.role = role; S.lib = lib; S.company = company; mode = "compose"; error = ""; pasting = false; save(); render(); });
+$("#restart").addEventListener("click", () => { const role = S.role, lib = S.lib, company = S.company, cta = S.cta; S = blank(); S.role = role; S.lib = lib; S.company = company; S.cta = cta; mode = "compose"; error = ""; pasting = false; save(); render(); });
 function tick() { const d = new Date(); let h = d.getHours(); const ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12; $("#clock").innerHTML = `${String(h).padStart(2, "0")}.${String(d.getMinutes()).padStart(2, "0")}<small>${ap}</small>`; }
 tick(); setInterval(tick, 15000);
 window.addEventListener("resize", drawWave);
