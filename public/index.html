@@ -179,6 +179,35 @@ button { cursor: pointer; }
 .writing .big { font-size: 22px; color: var(--ink); font-weight: 400; }
 .err { background: var(--sheet); border: 1px solid var(--ink); border-radius: 16px; padding: 14px 16px; font-size: 14px; }
 
+/* tags */
+.tagset { display: flex; flex-wrap: wrap; gap: 6px; }
+.tg { border: 1px solid var(--line); background: var(--sheet); border-radius: 999px; padding: 5px 12px; font-size: 13px; color: var(--muted); }
+.tg[aria-pressed="true"] { background: var(--btn); color: var(--btn-ink); border-color: var(--btn); }
+.tg:hover { border-color: var(--ink); }
+.tg .n { font-family: var(--mono); font-size: 11px; margin-left: 4px; opacity: .7; }
+.field { display: grid; gap: 6px; }
+.field input { width: 100%; border: 1px solid var(--line); background: var(--panel); border-radius: 12px; padding: 10px 12px; }
+.field input:focus { outline: none; border-color: var(--ink); }
+.hint { font-size: 12px; color: var(--muted); }
+.typed { font-size: 11px; font-family: var(--mono); color: var(--muted); }
+
+/* library */
+.lines { display: grid; gap: 0; }
+.ln { padding: 22px 0; border-top: 1px solid var(--line); display: grid; gap: 8px; }
+.ln:first-child { border-top: 0; padding-top: 4px; }
+.ln q { font-size: clamp(20px, 2.4vw, 28px); font-weight: 300; letter-spacing: -.02em; line-height: 1.25; quotes: "“" "”"; }
+.ln .m { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted); align-items: center; }
+.ln .m .t { border: 1px solid var(--line); border-radius: 999px; padding: 1px 9px; font-size: 12px; }
+.ln .m .ex { font-family: var(--mono); font-size: 11px; border: 1px dashed var(--faint); border-radius: 4px; padding: 0 5px; }
+.ln button.linkish { font-size: 13px; color: var(--muted); }
+.bars { display: grid; gap: 10px; }
+.bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; font-size: 14px; }
+.bar .track { grid-column: 1 / -1; height: 6px; border-radius: 3px; background: var(--panel-2); overflow: hidden; }
+.bar .fill { height: 100%; background: var(--ink); border-radius: 3px; }
+.filters { display: grid; gap: 10px; }
+.empty-lib { flex: 1; display: grid; place-content: center; text-align: center; gap: 8px; color: var(--muted); min-height: 260px; }
+.empty-lib .big { font-size: 22px; color: var(--ink); }
+
 .toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--btn); color: var(--btn-ink); padding: 10px 18px; border-radius: 999px; font-size: 14px; z-index: 30; max-width: calc(100% - 32px); }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .guide { display: grid; gap: 10px; }
@@ -192,6 +221,7 @@ button { cursor: pointer; }
         <div class="brand"><i aria-hidden="true"></i>debrief.</div>
       </div>
       <div class="bar-r">
+        <button class="pill" id="lib" type="button">my lines <span class="num" id="lib-n"></span></button>
         <button class="pill" id="how" type="button" aria-expanded="false">how it works <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3 4.5 6 7.5 9 4.5"/></svg></button>
         <button class="pill" id="restart" type="button">new upload</button>
       </div>
@@ -210,8 +240,22 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"
 
 /* ---------------- state ---------------- */
 const KEY = "debrief.v2";
-const blank = () => ({ role: "job", source: null, takeaway: "", out: null, tab: "x" });
+const INDUSTRIES = ["AI / ML", "Fintech", "Climate", "Health", "Consumer", "B2B SaaS", "Dev tools", "Crypto", "Hardware", "Media"];
+const FUNCTIONS = ["Product", "Engineering", "Design", "Marketing", "Sales / GTM", "Founding", "Investing", "Ops / People"];
+const blankMeta = () => ({ event: "", industries: [], functions: [], suggested: false });
+const blank = () => ({ role: "job", source: null, takeaway: "", typed: false, meta: blankMeta(), out: null, tab: "x", lib: null });
+const exampleLib = () => {
+  const d = (n) => Date.now() - n * 86400e3;
+  return [
+    { id: "ex1", example: true, line: "Infra founders don't sell speed anymore. They sell fewer things that can break at 3am.", event: "AI Infra Founders Night", industries: ["AI / ML", "Dev tools"], functions: ["Founding", "Engineering"], role: "job", at: d(2) },
+    { id: "ex2", example: true, line: "The best PMs tonight wrote the press release before the spec, and killed half their ideas there.", event: "Product Leaders Fireside", industries: ["B2B SaaS"], functions: ["Product"], role: "job", at: d(9) },
+    { id: "ex3", example: true, line: "Climate buyers don't want a dashboard. They want someone to sign the audit.", event: "Climate Tech Mixer", industries: ["Climate"], functions: ["Sales / GTM", "Founding"], role: "job", at: d(17) }
+  ];
+};
 let S = (() => { try { return Object.assign(blank(), JSON.parse(localStorage.getItem(KEY) || "{}")); } catch { return blank(); } })();
+if (!Array.isArray(S.lib)) S.lib = exampleLib();
+if (!S.meta) S.meta = blankMeta();
+let filt = { industry: null, func: null };
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify({ ...S, source: S.source && { ...S.source, peaks: null } })); } catch {} };
 // source: { kind: "text"|"audio", name, text, words, duration, peaks, pending }
 let busy = false, error = "", guideOpen = false, pasting = false, refining = false;
@@ -226,13 +270,13 @@ const ROLES = {
 let sampleP = null;
 const getSample = () => sampleP ||= (window.claude && typeof window.claude.use === "function") ? window.claude.use("sample").catch(() => null) : Promise.resolve(null);
 const inArtifact = () => !!(window.claude && typeof window.claude.use === "function");
-async function ask(prompt, { json = false } = {}) {
+async function ask(prompt, { json = false, quick = false } = {}) {
   const sample = await getSample();
   if (sample) {
-    const opts = { cache: false };
+    const opts = { cache: false, modelTier: quick ? "quick" : "default" };
     return json ? await sample.json(prompt, opts) : (await sample(prompt, opts)).text;
   }
-  const r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, json }) });
+  const r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, json, quick }) });
   if (!r.ok) throw { code: r.status === 429 ? "rate_limited" : "upstream_error" };
   return (await r.json()).result;
 }
@@ -253,6 +297,8 @@ function mainPrompt() {
   return `You turn recorded talks, meetings and conversations into social posts written in the voice of the person who was there.
 
 WRITER: ${r.angle}
+${S.meta.event ? `EVENT: ${S.meta.event} (mention it by name once)` : ""}
+${S.meta.industries.length || S.meta.functions.length ? `TOPIC AREAS: ${[...S.meta.industries, ...S.meta.functions].join(", ")}` : ""}
 
 THEIR ONE LINE (the thesis of everything you write; keep its meaning, you may sharpen the wording):
 "${S.takeaway}"
@@ -286,6 +332,26 @@ CURRENT:
 Reply with only JSON: ${isX ? '{"x":["post 1","post 2",...]}' : '{"linkedin":"the full post"}'}`;
 }
 
+async function suggestTags() {
+  const s = S.source; if (!s || !s.text || S.meta.suggested) return;
+  S.meta.suggested = "loading"; render();
+  try {
+    const r = await ask(`Classify this recording of a talk, panel or meeting.
+Pick 1-2 industries ONLY from: ${INDUSTRIES.join(" | ")}
+Pick 1-2 job functions ONLY from: ${FUNCTIONS.join(" | ")}
+If the event's name is stated in the text, give it; otherwise "".
+TRANSCRIPT EXCERPT:
+"""${s.text.slice(0, 8000)}"""
+Reply with only JSON: {"event":"","industries":[],"functions":[]}`, { json: true, quick: true });
+    const pick = (arr, allowed) => (Array.isArray(arr) ? arr : []).map(String).filter(x => allowed.includes(x)).slice(0, 2);
+    if (!S.meta.industries.length) S.meta.industries = pick(r && r.industries, INDUSTRIES);
+    if (!S.meta.functions.length) S.meta.functions = pick(r && r.functions, FUNCTIONS);
+    if (!S.meta.event && r && r.event) S.meta.event = String(r.event).slice(0, 80);
+    S.meta.suggested = true;
+  } catch { S.meta.suggested = false; }
+  save(); if (mode === "compose") render();
+}
+
 /* ---------------- files ---------------- */
 function cleanSubs(t) {
   return t.replace(/^WEBVTT.*$/m, "")
@@ -307,10 +373,10 @@ async function takeFile(f) {
     const text = /\.(srt|vtt)$/i.test(f.name) ? cleanSubs(raw) : raw.trim();
     if (!text) { toast("That file is empty"); return; }
     S.source = { kind: "text", name: f.name, text, words: words(text) };
-    S.out = null; save(); render(); return;
+    S.out = null; S.meta = blankMeta(); save(); render(); suggestTags(); return;
   }
   S.source = { kind: "audio", name: f.name, text: "", words: 0, duration: 0, peaks: null, pending: true };
-  S.out = null; render();
+  S.out = null; S.meta = blankMeta(); render();
   // waveform + duration (local, no upload)
   try {
     const buf = await f.arrayBuffer();
@@ -335,7 +401,7 @@ async function takeFile(f) {
     if (!r.ok) throw new Error(r.status === 413 ? "That audio file is too large. Keep it under 4 MB, or upload the transcript." : "Couldn't transcribe that file. Try again, or upload the transcript.");
     const { text } = await r.json();
     S.source.text = text || ""; S.source.words = words(S.source.text); S.source.pending = false;
-    if (!S.source.text) S.source.note = "No speech found in that file.";
+    if (!S.source.text) S.source.note = "No speech found in that file."; else setTimeout(suggestTags, 0);
   } catch (e) { S.source.pending = false; S.source.note = e.message; }
   save(); render();
 }
@@ -386,6 +452,7 @@ function composeView() {
     ${sourceBlock()}
     <div class="inset">
       <div class="inset-head"><label class="cap" for="line">The one line that stayed with you</label><span class="note num">${n}/140</span></div>
+      <span class="hint" id="line-hint">Type it yourself. Pasting is off here, because this line is what makes the post yours.</span>
       <textarea class="oneliner" id="line" rows="1" maxlength="140" placeholder="Write the line you'd repeat to a friend.">${esc(S.takeaway)}</textarea>
     </div>
   </section>
@@ -394,6 +461,7 @@ function composeView() {
       <div class="status"><div><h3>${s && s.text ? "Recording loaded" : "Waiting for a recording"}</h3><p class="lead">${s && s.text ? esc(meta) : "Nothing leaves your browser until you write"}</p></div><div class="status-dot ${s && s.pending ? "live" : ""}" aria-hidden="true"></div></div>
     </div>
     ${guideOpen ? guideCard() : ""}
+    ${s ? metaCard() : ""}
     <fieldset class="card" style="margin:0">
       <legend class="sr">Who you are writing as</legend>
       <div class="cap">Writing as</div>
@@ -405,6 +473,18 @@ function composeView() {
       <button class="go" id="go" type="button" ${ready() && !busy ? "" : "disabled"}>${busy ? "writing…" : "write posts."}</button>
     </div>
   </aside>`;
+}
+
+function metaCard() {
+  const m = S.meta;
+  const tagBtns = (list, chosen, kind) => list.map(t => `<button type="button" class="tg" data-tag="${kind}" data-v="${esc(t)}" aria-pressed="${chosen.includes(t)}">${esc(t)}</button>`).join("");
+  return `<div class="card">
+    <div class="cap">About this event</div>
+    <div class="field"><label for="ev" class="hint">Event name</label><input id="ev" type="text" maxlength="80" value="${esc(m.event)}" placeholder="e.g. AI Infra Founders Night"></div>
+    <div class="field"><span class="hint">Industry</span><div class="tagset">${tagBtns(INDUSTRIES, m.industries, "ind")}</div></div>
+    <div class="field"><span class="hint">Function</span><div class="tagset">${tagBtns(FUNCTIONS, m.functions, "fn")}</div></div>
+    <p class="hint">${m.suggested === "loading" ? "Suggesting tags from the transcript…" : m.suggested === true ? "Suggested from the transcript. Tap to change." : "Tags let you filter your lines later."}</p>
+  </div>`;
 }
 
 function guideCard() {
@@ -462,8 +542,53 @@ function resultView() {
     <div class="card">
       <div class="meta"><span>${isX ? "Copies the whole thread" : "Copies the full post"}</span><span class="num">${isX ? xs.length + " posts" : li.length + " chars"}</span></div>
       <a class="go" id="open" href="${isX ? "https://x.com/intent/post?text=" + encodeURIComponent(xs[0] || "") : "https://www.linkedin.com/feed/?shareActive=true"}" target="_blank" rel="noopener" ${o ? "" : 'aria-disabled="true" style="opacity:.35;pointer-events:none"'}>copy &amp; open ${isX ? "X" : "LinkedIn"}.</a>
-      <div class="sec"><button class="btn" id="copy" type="button" ${o ? "" : "disabled"}>Copy only</button><button class="btn" id="again" type="button" ${busy ? "disabled" : ""}>Write again</button><button class="btn" id="edit" type="button">Change the line</button></div>
+      <div class="sec"><button class="btn" id="copy" type="button" ${o ? "" : "disabled"}>Copy only</button><button class="btn" id="again" type="button" ${busy || !ready() ? "disabled" : ""}>Write again</button><button class="btn" id="edit" type="button">Change the line</button></div>
     </div>
+  </aside>`;
+}
+
+function libraryView() {
+  const all = S.lib;
+  const shown = all.filter(x => (!filt.industry || (x.industries || []).includes(filt.industry)) && (!filt.func || (x.functions || []).includes(filt.func)));
+  const count = (key, list) => list.map(t => [t, all.filter(x => (x[key] || []).includes(t)).length]).filter(([, n]) => n).sort((a, b) => b[1] - a[1]);
+  const inds = count("industries", INDUSTRIES), fns = count("functions", FUNCTIONS);
+  const max = Math.max(1, ...inds.map(x => x[1]), ...fns.map(x => x[1]));
+  const bars = (rows) => rows.length ? rows.map(([t, n]) => `<div class="bar"><span>${esc(t)}</span><span class="num">${n}</span><div class="track"><div class="fill" style="width:${n / max * 100}%"></div></div></div>`).join("") : `<p class="hint">Nothing tagged yet.</p>`;
+  const fmtDate = (t) => new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  const label = [filt.industry, filt.func].filter(Boolean).join(" · ");
+  const hasEx = all.some(x => x.example);
+
+  const list = !all.length
+    ? `<div class="empty-lib"><div class="big">No lines yet</div><div>Every line you write is kept here, tagged by industry and function.</div><div class="sec" style="justify-content:center;margin-top:8px"><button class="btn" id="lib-new" type="button">Write your first</button></div></div>`
+    : !shown.length
+      ? `<div class="empty-lib"><div class="big">Nothing under ${esc(label)}</div><div>Clear the filter to see everything.</div><div class="sec" style="justify-content:center;margin-top:8px"><button class="btn" data-clear type="button">Clear filter</button></div></div>`
+      : `<div class="lines">${shown.map(x => `<article class="ln">
+          <q>${esc(x.line)}</q>
+          <div class="m"><span>${esc(fmtDate(x.at))}</span>${x.event ? `<span>${esc(x.event)}</span>` : ""}${[...(x.industries || []), ...(x.functions || [])].map(t => `<span class="t">${esc(t)}</span>`).join("")}${x.example ? '<span class="ex">example</span>' : ""}</div>
+          <div class="sec">${x.out ? `<button class="linkish" data-open="${x.id}" type="button">Open posts</button>` : ""}<button class="linkish" data-del="${x.id}" type="button">Delete</button></div>
+        </article>`).join("")}</div>`;
+
+  return `
+  <section class="stage" aria-label="Your lines">
+    <div class="stage-top">
+      <div><h1>What stayed with you.</h1><p class="sub">${all.length ? `${all.length} ${all.length === 1 ? "line" : "lines"}, written in your own words${label ? `. Showing ${esc(label)}.` : "."}` : "Your lines collect here."}</p></div>
+    </div>
+    ${list}
+  </section>
+  <aside class="col">
+    <div class="card">
+      <div class="cap">Filter</div>
+      <div class="filters">
+        <span class="hint">Industry</span>
+        <div class="tagset">${INDUSTRIES.map(t => { const n = all.filter(x => (x.industries || []).includes(t)).length; return n ? `<button type="button" class="tg" data-f="industry" data-v="${esc(t)}" aria-pressed="${filt.industry === t}">${esc(t)}<span class="n">${n}</span></button>` : ""; }).join("") || '<span class="hint">None yet</span>'}</div>
+        <span class="hint">Function</span>
+        <div class="tagset">${FUNCTIONS.map(t => { const n = all.filter(x => (x.functions || []).includes(t)).length; return n ? `<button type="button" class="tg" data-f="func" data-v="${esc(t)}" aria-pressed="${filt.func === t}">${esc(t)}<span class="n">${n}</span></button>` : ""; }).join("") || '<span class="hint">None yet</span>'}</div>
+      </div>
+      ${label ? `<div class="sec"><button class="btn" data-clear type="button">Clear filter</button></div>` : ""}
+    </div>
+    <div class="card tint"><div class="cap">Where your thinking goes</div><div class="bars">${bars(inds)}</div></div>
+    <div class="card"><div class="cap">By function</div><div class="bars">${bars(fns)}</div></div>
+    ${hasEx ? `<div class="card"><p class="hint">The lines marked "example" show how this page fills up. Remove them once you have your own.</p><div class="sec"><button class="btn" id="ex-clear" type="button">Remove examples</button></div></div>` : ""}
   </aside>`;
 }
 
@@ -471,7 +596,8 @@ let mode = S.out ? "result" : "compose";
 function render() {
   const main = $("#main");
   const focusId = document.activeElement && document.activeElement.id;
-  main.innerHTML = mode === "result" ? resultView() : composeView();
+  main.innerHTML = mode === "result" ? resultView() : mode === "library" ? libraryView() : composeView();
+  $("#lib-n").textContent = S.lib.length ? S.lib.length : "";
   bind();
   if (focusId && $("#" + focusId)) { const el = $("#" + focusId); el.focus(); if (el.setSelectionRange && el.value) el.setSelectionRange(el.value.length, el.value.length); }
   drawWave();
@@ -496,7 +622,7 @@ function bind() {
   $("#paste-x")?.addEventListener("click", () => { pasting = false; render(); });
   $("#paste-ok")?.addEventListener("click", () => {
     const t = $("#paste").value.trim(); if (!t) { toast("Paste some text first"); return; }
-    S.source = { kind: "text", name: "Pasted transcript", text: t, words: words(t) }; pasting = false; S.out = null; save(); render();
+    S.source = { kind: "text", name: "Pasted transcript", text: t, words: words(t) }; pasting = false; S.out = null; S.meta = blankMeta(); save(); render(); suggestTags();
   });
   const drop = $("#drop");
   if (drop) {
@@ -514,10 +640,38 @@ function bind() {
       $("#go").disabled = !ready() || busy;
       const r = document.querySelector(".meta .num"); if (r) r.textContent = [!!(S.source && S.source.text), !!S.takeaway.trim(), true].filter(Boolean).length + "/3 ready";
     });
+    const nope = (e) => { e.preventDefault(); const h = $("#line-hint"); h.textContent = "Pasting is off for this line. Type it in your own words."; h.style.color = "var(--ink)"; toast("Type this one yourself"); };
+    line.addEventListener("paste", nope);
+    line.addEventListener("drop", nope);
+    line.addEventListener("beforeinput", e => { if (e.inputType === "insertFromPaste" || e.inputType === "insertFromDrop" || e.inputType === "insertFromPasteAsQuotation") nope(e); });
     line.addEventListener("keydown", e => { if (e.key === "Enter" && !e.isComposing) { e.preventDefault(); if (ready()) write(); } });
   }
   document.querySelectorAll('input[name="role"]').forEach(r => r.addEventListener("change", () => { S.role = r.value; save(); }));
   $("#go")?.addEventListener("click", write);
+  $("#ev")?.addEventListener("input", e => { S.meta.event = e.target.value; save(); });
+  document.querySelectorAll("[data-tag]").forEach(b => b.addEventListener("click", () => {
+    const key = b.dataset.tag === "ind" ? "industries" : "functions", v = b.dataset.v, arr = S.meta[key];
+    const i = arr.indexOf(v); if (i >= 0) arr.splice(i, 1); else arr.push(v);
+    b.setAttribute("aria-pressed", String(i < 0)); save();
+  }));
+
+  // library
+  document.querySelectorAll("[data-f]").forEach(b => b.addEventListener("click", () => {
+    const k = b.dataset.f, v = b.dataset.v; filt[k] = filt[k] === v ? null : v; render();
+  }));
+  document.querySelectorAll("[data-clear]").forEach(b => b.addEventListener("click", () => { filt = { industry: null, func: null }; render(); }));
+  $("#ex-clear")?.addEventListener("click", () => { S.lib = S.lib.filter(x => !x.example); filt = { industry: null, func: null }; save(); render(); toast("Examples removed"); });
+  $("#lib-new")?.addEventListener("click", () => { mode = "compose"; render(); });
+  document.querySelectorAll("[data-open]").forEach(b => b.addEventListener("click", () => {
+    const it = S.lib.find(x => x.id === b.dataset.open); if (!it || !it.out) return;
+    S.takeaway = it.line; S.role = it.role || S.role; S.meta = { event: it.event || "", industries: [...(it.industries || [])], functions: [...(it.functions || [])], suggested: true };
+    S.source = { kind: "text", name: it.sourceName || "Saved line", text: "", words: 0 };
+    S.out = JSON.parse(JSON.stringify(it.out)); S.tab = "x"; mode = "result"; save(); render(); window.scrollTo(0, 0);
+  }));
+  document.querySelectorAll("[data-del]").forEach(b => b.addEventListener("click", () => {
+    if (!b.dataset.armed) { b.dataset.armed = "1"; b.textContent = "Tap again to delete"; return; }
+    S.lib = S.lib.filter(x => x.id !== b.dataset.del); save(); render(); toast("Deleted");
+  }));
 
   // result
   document.querySelectorAll("[data-tab]").forEach(b => b.addEventListener("click", () => { S.tab = b.dataset.tab; save(); render(); }));
@@ -563,15 +717,18 @@ async function write() {
     const x = (r && Array.isArray(r.x) ? r.x : []).map(String).map(s => s.trim()).filter(Boolean).slice(0, 6);
     const li = r && r.linkedin ? String(r.linkedin).trim() : "";
     if (!x.length || !li) throw { code: "invalid_json" };
-    S.out = { x, linkedin: li }; save();
+    S.out = { x, linkedin: li };
+    S.lib.unshift({ id: Math.random().toString(36).slice(2, 10), line: S.takeaway.trim(), event: S.meta.event.trim(), industries: [...S.meta.industries], functions: [...S.meta.functions], role: S.role, sourceName: S.source.name, at: Date.now(), out: JSON.parse(JSON.stringify(S.out)) });
+    save();
   } catch (e) { error = errCopy(e); mode = "compose"; }
   busy = false; render();
 }
 
 /* ---------------- header ---------------- */
 $("#file").addEventListener("change", e => { pasting = false; takeFile(e.target.files[0]); e.target.value = ""; });
+$("#lib").addEventListener("click", () => { mode = mode === "library" ? (S.out ? "result" : "compose") : "library"; render(); window.scrollTo(0, 0); });
 $("#how").addEventListener("click", () => { guideOpen = !guideOpen; $("#how").setAttribute("aria-expanded", String(guideOpen)); if (mode !== "compose") mode = "compose"; render(); });
-$("#restart").addEventListener("click", () => { const role = S.role; S = blank(); S.role = role; mode = "compose"; error = ""; pasting = false; save(); render(); });
+$("#restart").addEventListener("click", () => { const role = S.role, lib = S.lib; S = blank(); S.role = role; S.lib = lib; mode = "compose"; error = ""; pasting = false; save(); render(); });
 function tick() { const d = new Date(); let h = d.getHours(); const ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12; $("#clock").innerHTML = `${String(h).padStart(2, "0")}.${String(d.getMinutes()).padStart(2, "0")}<small>${ap}</small>`; }
 tick(); setInterval(tick, 15000);
 window.addEventListener("resize", drawWave);
