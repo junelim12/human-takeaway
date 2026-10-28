@@ -243,7 +243,7 @@ const KEY = "debrief.v2";
 const INDUSTRIES = ["AI / ML", "Fintech", "Climate", "Health", "Consumer", "B2B SaaS", "Dev tools", "Crypto", "Hardware", "Media"];
 const FUNCTIONS = ["Product", "Engineering", "Design", "Marketing", "Sales / GTM", "Founding", "Investing", "Ops / People"];
 const blankMeta = () => ({ event: "", industries: [], functions: [], suggested: false });
-const blank = () => ({ role: "job", source: null, takeaway: "", typed: false, meta: blankMeta(), out: null, tab: "x", lib: null });
+const blank = () => ({ role: "job", company: "", source: null, takeaway: "", typed: false, meta: blankMeta(), out: null, tab: "x", lib: null });
 const exampleLib = () => {
   const d = (n) => Date.now() - n * 86400e3;
   return [
@@ -262,8 +262,8 @@ let busy = false, error = "", guideOpen = false, pasting = false, refining = fal
 
 const ROLES = {
   job: { t: "Job seeker", h: "Show how you think, so hiring managers notice.", angle: "a job seeker. The posts should show sharp domain thinking and curiosity a hiring manager would notice. Never beg for a job and never say 'open to work'." },
-  mkt: { t: "Marketer", h: "Turn the talk into a point of view your audience shares.", angle: "a marketer. The posts should give a clear, useful point of view the audience will want to share, with concrete examples. No campaign-speak, no slogans." },
-  founder: { t: "Founder", h: "Earn trust with a clear take, without pitching.", angle: "a founder. The posts should take a clear position tied to what they are building, earning trust from customers, hires and investors, without pitching the product." }
+  mkt: { t: "Marketer", h: "Put the spotlight on the company or product behind the event.", angle: "a marketer whose job is to get attention on the company or product in the spotlight (see SPOTLIGHT). The writer's line is the angle; the company or product is the subject. Name it naturally, show one concrete thing it lets people do or one result from the transcript, and make clear why that matters right now. Sound like a credible insider or excited user, not an ad: no slogans, no superlatives that the transcript doesn't back up. A short, light call to try or look at it is welcome at the end. Only claim features, customers and results that the transcript or the line states." },
+  founder: { t: "Founder", h: "Spotlight the company and rally people around its vision.", angle: "the founder of the company or product in the spotlight (see SPOTLIGHT). Like a marketer, put attention on it, but above all make people believe in the vision: the problem in the world it exists to solve, why now, and what changes if it works. Ambition and conviction are welcome here, as long as every big statement is anchored in something concrete from the transcript or the line (a user story, a number, a moment). Invite people in at the end: users, builders, future teammates. Only claim what the transcript or the line supports." }
 };
 
 /* ---------------- Claude ---------------- */
@@ -341,6 +341,16 @@ Then the product just had to make it go away.
 Trying this in my next demo."`;
 
 
+function spotlightBlock() {
+  if (S.role === "job") return "";
+  const co = (S.company || "").trim();
+  const who = co ? `SPOTLIGHT: "${co}". Use this exact name.` : "SPOTLIGHT: not given. Identify the company or product that hosted the event or is discussed most in the transcript and use its name as it appears there. If none is clear, keep the focus on the idea and name no company.";
+  const tweak = S.role === "founder"
+    ? "ROLE OVERRIDES: For the vision, the 'no inflated stakes' rule is relaxed: you may talk about the larger future this company is building toward, but with no hype clichés, and every big claim needs a concrete anchor. Ending with an invitation to join or try is allowed."
+    : "ROLE OVERRIDES: Ending with a short, light call to try or look at the product is allowed. The company or product must be named in both the X post and the LinkedIn post.";
+  return who + "\n" + tweak;
+}
+
 function eventBlock() {
   const ev = (S.meta.event || "").trim();
   if (!ev) return "EVENT: none given. Do not name any event. If the setting matters, describe it generically in a few words (\"a founder dinner\", \"a panel on infra\").";
@@ -358,6 +368,7 @@ function context() {
   const tx = S.source.text.length > 60000 ? S.source.text.slice(0, 60000) + "\n[transcript truncated]" : S.source.text;
   return `WRITER: ${r.angle}
 ${eventBlock()}
+${spotlightBlock()}
 ${S.meta.industries.length || S.meta.functions.length ? `TOPIC AREAS: ${[...S.meta.industries, ...S.meta.functions].join(", ")}` : ""}
 
 THE WRITER'S OWN LINE (the thesis; keep its meaning, you may sharpen the wording):
@@ -405,6 +416,7 @@ function refinePrompt(how) {
   return `You ghostwrite ${isX ? "X posts" : "LinkedIn posts"}. ${isX ? X_VOICE : LI_VOICE}
 
 The writer is ${r.angle}
+${spotlightBlock()}
 Their own line: "${S.takeaway}".
 
 Rewrite the draft below. Change requested: ${how}
@@ -550,6 +562,7 @@ function composeView() {
       <legend class="sr">Who you are writing as</legend>
       <div class="cap">Writing as</div>
       <div class="roles">${Object.entries(ROLES).map(([k, r]) => `<label class="role"><input type="radio" name="role" value="${k}" ${S.role === k ? "checked" : ""}><span><span class="t">${r.t}</span><br><span class="h">${r.h}</span></span></label>`).join("")}</div>
+      ${S.role !== "job" ? `<div class="field"><label for="co" class="hint">Company or product to spotlight</label><input id="co" type="text" maxlength="60" value="${esc(S.company || "")}" placeholder="e.g. Lovable"><span class="hint">Leave blank to use the host or the company talked about most.</span></div>` : ""}
     </fieldset>
     <div class="card">
       <div class="meta"><span>Output: X post + LinkedIn post</span><span class="num">${[!!(s && s.text), !!S.takeaway.trim(), true].filter(Boolean).length}/3 ready</span></div>
@@ -756,7 +769,8 @@ function bind() {
       write();
     });
   }
-  document.querySelectorAll('input[name="role"]').forEach(r => r.addEventListener("change", () => { S.role = r.value; save(); }));
+  document.querySelectorAll('input[name="role"]').forEach(r => r.addEventListener("change", () => { S.role = r.value; save(); render(); }));
+  $("#co")?.addEventListener("input", e => { S.company = e.target.value; save(); });
   $("#go")?.addEventListener("click", write);
   $("#ev")?.addEventListener("input", e => { S.meta.event = e.target.value; save(); });
   document.querySelectorAll("[data-tag]").forEach(b => b.addEventListener("click", () => {
@@ -838,7 +852,7 @@ async function write() {
 $("#file").addEventListener("change", e => { pasting = false; takeFile(e.target.files[0]); e.target.value = ""; });
 $("#lib").addEventListener("click", () => { mode = mode === "library" ? (S.out ? "result" : "compose") : "library"; render(); window.scrollTo(0, 0); });
 $("#how").addEventListener("click", () => { guideOpen = !guideOpen; $("#how").setAttribute("aria-expanded", String(guideOpen)); if (mode !== "compose") mode = "compose"; render(); });
-$("#restart").addEventListener("click", () => { const role = S.role, lib = S.lib; S = blank(); S.role = role; S.lib = lib; mode = "compose"; error = ""; pasting = false; save(); render(); });
+$("#restart").addEventListener("click", () => { const role = S.role, lib = S.lib, company = S.company; S = blank(); S.role = role; S.lib = lib; S.company = company; mode = "compose"; error = ""; pasting = false; save(); render(); });
 function tick() { const d = new Date(); let h = d.getHours(); const ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12; $("#clock").innerHTML = `${String(h).padStart(2, "0")}.${String(d.getMinutes()).padStart(2, "0")}<small>${ap}</small>`; }
 tick(); setInterval(tick, 15000);
 window.addEventListener("resize", drawWave);
