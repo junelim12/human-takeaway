@@ -295,7 +295,7 @@ const NOT_A_SUMMARY = `THE TRANSCRIPT IS RAW MATERIAL, NOT THE SUBJECT.
 - Do not summarize, recap, or report what was said. No agenda, no list of speakers, no "the panel discussed".
 - The subject is the writer's one line: what THEY now believe. Use at most 2 or 3 details from the transcript, picked because they prove or sharpen that line.
 - Never open with "Just attended", "Key takeaways from", "I learned that", "Yesterday at", "Great event".
-- The event is setting, a few words at most, or left out. Someone who was not there must still get value.
+- Never name the event, session, meetup or file. Labels you see may be the writer's private notes, not real names. If the setting matters, describe it generically in a few words ("a founder dinner", "a panel on infra"). Someone who was not there must still get value.
 - Before answering, check each draft: if it reads like meeting notes, rewrite it as an opinion.`;
 
 const X_VOICE = `VOICE: founders and tech operators who get read on X, the people building companies backed by YC, a16z or Sequoia, and the engineers, investors and operators whose posts get passed around in SF. Write in the genre, not as any one person.
@@ -337,7 +337,6 @@ function context() {
   const r = ROLES[S.role];
   const tx = S.source.text.length > 60000 ? S.source.text.slice(0, 60000) + "\n[transcript truncated]" : S.source.text;
   return `WRITER: ${r.angle}
-${S.meta.event ? `EVENT: ${S.meta.event}` : ""}
 ${S.meta.industries.length || S.meta.functions.length ? `TOPIC AREAS: ${[...S.meta.industries, ...S.meta.functions].join(", ")}` : ""}
 
 THE WRITER'S OWN LINE (the thesis; keep its meaning, you may sharpen the wording):
@@ -546,7 +545,7 @@ function metaCard() {
   const tagBtns = (list, chosen, kind) => list.map(t => `<button type="button" class="tg" data-tag="${kind}" data-v="${esc(t)}" aria-pressed="${chosen.includes(t)}">${esc(t)}</button>`).join("");
   return `<div class="card">
     <div class="cap">About this event</div>
-    <div class="field"><label for="ev" class="hint">Event name</label><input id="ev" type="text" maxlength="80" value="${esc(m.event)}" placeholder="e.g. AI Infra Founders Night"></div>
+    <div class="field"><label for="ev" class="hint">Event name (for your records only, never used in posts)</label><input id="ev" type="text" maxlength="80" value="${esc(m.event)}" placeholder="e.g. AI Infra Founders Night"></div>
     <div class="field"><span class="hint">Industry</span><div class="tagset">${tagBtns(INDUSTRIES, m.industries, "ind")}</div></div>
     <div class="field"><span class="hint">Function</span><div class="tagset">${tagBtns(FUNCTIONS, m.functions, "fn")}</div></div>
     <p class="hint">${m.suggested === "loading" ? "Suggesting tags from the transcript…" : m.suggested === true ? "Suggested from the transcript. Tap to change." : "Tags let you filter your lines later."}</p>
