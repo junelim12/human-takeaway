@@ -255,7 +255,7 @@ let busy = false, error = "", guideOpen = false, pasting = false, refining = fal
 const ROLES = {
   job: { t: "Job seeker", h: "Show how you think, so hiring managers notice.", angle: "a job seeker. The posts should show sharp domain thinking and curiosity a hiring manager would notice. Never beg for a job and never say 'open to work'." },
   mkt: { t: "Marketer", h: "Put the spotlight on the company or product behind the event.", angle: "a marketer whose job is to get attention on the company or product in the spotlight (see SPOTLIGHT). The writer's line is the angle; the company or product is the subject. Name it naturally, show one concrete thing it lets people do or one result from the transcript, and make clear why that matters right now. Sound like a credible insider or excited user, not an ad: no slogans, no superlatives that the transcript doesn't back up. A short, light call to try or look at it is welcome at the end. Only claim features, customers and results that the transcript or the line states." },
-  founder: { t: "Founder", h: "Spotlight the company and rally people around its vision.", angle: "the founder of the company or product in the spotlight (see SPOTLIGHT). Like a marketer, put attention on it, but above all make people believe in the vision: the problem in the world it exists to solve, why now, and what changes if it works. Ambition and conviction are welcome here, as long as every big statement is anchored in something concrete from the transcript or the line (a user story, a number, a moment). Invite people in at the end: users, builders, future teammates. Only claim what the transcript or the line supports." }
+  founder: { t: "Founder", h: "Earn trust with a clear take, without pitching.", angle: "a founder. The posts should take a clear position tied to what they are building, earning trust from customers, hires and investors, without pitching the product." }
 };
 
 /* ---------------- Claude ---------------- */
@@ -334,12 +334,10 @@ Trying this in my next demo."`;
 
 
 function spotlightBlock() {
-  if (S.role === "job") return "";
+  if (S.role !== "mkt") return "";
   const co = (S.company || "").trim();
   const who = co ? `SPOTLIGHT: "${co}". Use this exact name.` : "SPOTLIGHT: not given. Identify the company or product that hosted the event or is discussed most in the transcript and use its name as it appears there. If none is clear, keep the focus on the idea and name no company.";
-  const tweak = S.role === "founder"
-    ? "ROLE OVERRIDES: For the vision, the 'no inflated stakes' rule is relaxed: you may talk about the larger future this company is building toward, but with no hype clichés, and every big claim needs a concrete anchor. Ending with an invitation to join or try is allowed."
-    : "ROLE OVERRIDES: Ending with a short, light call to try or look at the product is allowed. The company or product must be named in both the X post and the LinkedIn post.";
+  const tweak = "ROLE OVERRIDES: Ending with a short, light call to try or look at the product is allowed. The company or product must be named in both the X post and the LinkedIn post.";
   return who + "\n" + tweak;
 }
 
@@ -554,7 +552,7 @@ function composeView() {
       <legend class="sr">Who you are writing as</legend>
       <div class="cap">Writing as</div>
       <div class="roles">${Object.entries(ROLES).map(([k, r]) => `<label class="role"><input type="radio" name="role" value="${k}" ${S.role === k ? "checked" : ""}><span><span class="t">${r.t}</span><br><span class="h">${r.h}</span></span></label>`).join("")}</div>
-      ${S.role !== "job" ? `<div class="field"><label for="co" class="hint">Company or product to spotlight</label><input id="co" type="text" maxlength="60" value="${esc(S.company || "")}" placeholder="e.g. Lovable"><span class="hint">Leave blank to use the host or the company talked about most.</span></div>` : ""}
+      ${S.role === "mkt" ? `<div class="field"><label for="co" class="hint">Company or product to spotlight</label><input id="co" type="text" maxlength="60" value="${esc(S.company || "")}" placeholder="e.g. Lovable"><span class="hint">Leave blank to use the host or the company talked about most.</span></div>` : ""}
     </fieldset>
     <div class="card">
       <div class="meta"><span>Output: X post + LinkedIn post</span><span class="num">${[!!(s && s.text), !!S.takeaway.trim(), true].filter(Boolean).length}/3 ready</span></div>

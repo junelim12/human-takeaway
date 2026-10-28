@@ -12,8 +12,8 @@ Built for people in the Bay Area startup scene (job seekers, marketers, founders
 2. **Pick who you're writing as**:
    - **Job seeker**: shows how you think, so hiring managers notice.
    - **Marketer**: puts the spotlight on the company or product behind the event (most Bay Area events exist to promote the host or the companies it features). Names the product, shows one concrete thing it does, ends with a light call to try it.
-   - **Founder**: spotlights the company and rallies people around its vision: the problem it solves, why now, what changes if it works, anchored in concrete proof.
-   - For Marketer and Founder, you can name the company or product to spotlight. Left blank, the host or the most-discussed company in the transcript is used.
+   - **Founder**: takes a clear position tied to what they are building, earning trust from customers, hires and investors, without pitching the product.
+   - For Marketer, you can name the company or product to spotlight. Left blank, the host or the most-discussed company in the transcript is used.
 3. **Type your one line** (up to 140 characters). Pasting is disabled in this field on purpose: the line has to be written by you, and everything else is built around it.
 4. **Name the event and tag it**: type the event name however you call it. The posts judge how to use it: a recognizable public name may be mentioned once, while a private label (dates, abbreviations) is turned into a natural description instead of being copied. Industry and function tags are suggested from the transcript and can be changed.
 5. **Get your posts** in two tabs:
