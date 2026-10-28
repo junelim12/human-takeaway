@@ -23,6 +23,8 @@ Built for people in the Bay Area startup scene (job seekers, marketers, founders
    - Rewrites: Shorter / Punchier / Drier / Another take on X; Shorter / Sharper opening / More personal / More casual on LinkedIn.
 7. **My lines**: every line you have written, with date, event and tags. Filter by industry or function, see where your thinking concentrates, and reopen the posts made from any line.
 
+How posts are written: a planning pass first restates what your line claims and picks at most two details from the transcript that directly prove it (rejecting vivid but off-topic or contradictory ones, and anything that may be a transcription error). The writers only see that plan, not the raw transcript. Each writer drafts, checks every sentence against the thesis, and returns the edited version.
+
 Design: monochrome, one large stage panel with a column of cards on the right. Light and dark themes.
 
 ## Project structure
@@ -49,7 +51,7 @@ vercel env add ANTHROPIC_API_KEY
 vercel env add OPENAI_API_KEY      # only needed for audio transcription
 ```
 
-Optional environment variables: `ANTHROPIC_MODEL` (default `claude-sonnet-5-5`), `ANTHROPIC_MODEL_QUICK` (default `claude-haiku-5-5`), `STT_MODEL` (default `whisper-1`).
+Optional environment variables: `ANTHROPIC_MODEL` (default `claude-sonnet-5-5`), `ANTHROPIC_MODEL_QUICK` (default `claude-haiku-5-5`), `ANTHROPIC_MODEL_COMPLEX` (default `claude-opus-5-5`, used for the final writing pass), `STT_MODEL` (default `whisper-1`).
 
 Notes:
 

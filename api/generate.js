@@ -1,9 +1,10 @@
 // Vercel serverless function: POST /api/generate
-// Body: { prompt: string, json?: boolean, quick?: boolean }
-// Env:  ANTHROPIC_API_KEY (required), ANTHROPIC_MODEL / ANTHROPIC_MODEL_QUICK (optional)
+// Body: { prompt: string, json?: boolean, quick?: boolean, tier?: "complex" }
+// Env:  ANTHROPIC_API_KEY (required), ANTHROPIC_MODEL / ANTHROPIC_MODEL_QUICK / ANTHROPIC_MODEL_COMPLEX (optional)
 
 const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5";
 const MODEL_QUICK = process.env.ANTHROPIC_MODEL_QUICK || "claude-haiku-5-5";
+const MODEL_COMPLEX = process.env.ANTHROPIC_MODEL_COMPLEX || "claude-opus-5-5";
 
 // Very small in-memory rate limit per IP (resets when the function cold-starts).
 const hits = new Map();
@@ -29,8 +30,8 @@ export default async function handler(req, res) {
   hits.set(k, (hits.get(k) || 0) + 1);
   if (hits.get(k) > LIMIT) return res.status(429).json({ error: "rate_limited" });
 
-  const { prompt, json = false, quick = false } = req.body || {};
-  if (typeof prompt !== "string" || !prompt.trim() || prompt.length > 40000) {
+  const { prompt, json = false, quick = false, tier = null } = req.body || {};
+  if (typeof prompt !== "string" || !prompt.trim() || prompt.length > 120000) {
     return res.status(400).json({ error: "bad prompt" });
   }
 
@@ -43,8 +44,8 @@ export default async function handler(req, res) {
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: quick ? MODEL_QUICK : MODEL,
-        max_tokens: 2500,
+        model: tier === "complex" ? MODEL_COMPLEX : quick ? MODEL_QUICK : MODEL,
+        max_tokens: 4000,
         messages: [{ role: "user", content: prompt }],
       }),
     });
