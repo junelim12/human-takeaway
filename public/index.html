@@ -711,7 +711,15 @@ function bind() {
     line.addEventListener("paste", nope);
     line.addEventListener("drop", nope);
     line.addEventListener("beforeinput", e => { if (e.inputType === "insertFromPaste" || e.inputType === "insertFromDrop" || e.inputType === "insertFromPasteAsQuotation") nope(e); });
-    line.addEventListener("keydown", e => { if (e.key === "Enter" && !e.isComposing) { e.preventDefault(); if (ready()) write(); } });
+    line.addEventListener("keydown", e => {
+      if (e.key !== "Enter" || e.isComposing || e.keyCode === 229) return;
+      e.preventDefault();
+      if (busy) return;
+      if (!S.takeaway.trim()) { toast("Write your line first"); return; }
+      if (!S.source || S.source.pending) { toast(S.source ? "Still transcribing. Try again in a moment." : "Upload a recording or transcript first"); return; }
+      if (!S.source.text) { toast("Upload the transcript first"); return; }
+      write();
+    });
   }
   document.querySelectorAll('input[name="role"]').forEach(r => r.addEventListener("change", () => { S.role = r.value; save(); }));
   $("#go")?.addEventListener("click", write);
