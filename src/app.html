@@ -296,7 +296,7 @@ const X_VOICE = `VOICE: founders and tech operators who get read on X, the peopl
 - Insider and concrete: real numbers and working vocabulary (ARR, churn, evals, latency, seed, GTM, headcount), the way people talk in Slack, not in press releases.
 - Confident, a little contrarian, takes a side. Dry humor is welcome. Never preachy or motivational.
 - Casual register. Lowercase is fine. Contractions. No corporate words.
-- No hashtags, no emoji, no "thread", no "1/" numbering.
+- No hashtags, no emoji.
 
 TONE REFERENCES (invented, for tone only; never reuse their content):
 "most 'ai-native' startups are services companies with a nicer landing page. that's fine. just price it like one."
@@ -346,14 +346,15 @@ ${NOT_A_SUMMARY}
 
 ${context()}
 
-Write a short X thread in English:
-- Post 1 stands alone and is the post people repost: the writer's line turned into a sharp claim. At most 260 characters.
-- Then 1 to 3 follow-up posts, each adding one thing: a specific from the transcript, the mechanism behind the claim, or a counterexample. Each at most 270 characters.
-- The last post lands it with a sharp line or a real question.
+Write ONE X post in English. Not a thread.
+- It is the writer's own line, polished to sound native to X. Stay close to their words and meaning: tighten, sharpen, make it land. Do not explain it, do not add background, do not add a second idea.
+- Ideally under 140 characters, never over 220. One to three short lines.
+- Use a detail from the transcript only if a single number or noun makes the line hit harder. Usually use none.
+- No question at the end unless the line itself is a question.
 
 ${NO}
 
-Reply with only JSON: {"x":["post 1","post 2",...]}`;
+Reply with only JSON: {"x":["the post"]}`;
 }
 
 function liPrompt() {
@@ -373,20 +374,20 @@ Reply with only JSON: {"linkedin":"the full post"}`;
 function refinePrompt(how) {
   const r = ROLES[S.role];
   const isX = S.tab === "x";
-  const cur = isX ? S.out.x.map((p, i) => `[${i + 1}] ${p}`).join("\n\n") : S.out.linkedin;
+  const cur = isX ? S.out.x.join("\n\n") : S.out.linkedin;
   return `You ghostwrite ${isX ? "X posts" : "LinkedIn posts"}. ${isX ? X_VOICE : LI_VOICE}
 
 The writer is ${r.angle}
 Their own line: "${S.takeaway}".
 
 Rewrite the draft below. Change requested: ${how}
-Keep the thesis and the facts. Keep it an opinion, never a summary of an event. ${isX ? "Each post at most 270 characters, post 1 at most 260." : "Lines 1 and 2 together under 200 characters."}
+Keep the thesis and the facts. Keep it an opinion, never a summary of an event. ${isX ? "One post only, not a thread, ideally under 140 characters and never over 220. Stay close to the writer's own line." : "Lines 1 and 2 together under 200 characters."}
 ${NO}
 
 CURRENT:
 """${cur}"""
 
-Reply with only JSON: ${isX ? '{"x":["post 1","post 2",...]}' : '{"linkedin":"the full post"}'}`;
+Reply with only JSON: ${isX ? '{"x":["the post"]}' : '{"linkedin":"the full post"}'}`;
 }
 
 async function suggestTags() {
@@ -525,7 +526,7 @@ function composeView() {
       <div class="roles">${Object.entries(ROLES).map(([k, r]) => `<label class="role"><input type="radio" name="role" value="${k}" ${S.role === k ? "checked" : ""}><span><span class="t">${r.t}</span><br><span class="h">${r.h}</span></span></label>`).join("")}</div>
     </fieldset>
     <div class="card">
-      <div class="meta"><span>Output: X thread + LinkedIn post</span><span class="num">${[!!(s && s.text), !!S.takeaway.trim(), true].filter(Boolean).length}/3 ready</span></div>
+      <div class="meta"><span>Output: X post + LinkedIn post</span><span class="num">${[!!(s && s.text), !!S.takeaway.trim(), true].filter(Boolean).length}/3 ready</span></div>
       ${error ? `<div class="err">${esc(error)}</div>` : ""}
       <button class="go" id="go" type="button" ${ready() && !busy ? "" : "disabled"}>${busy ? "writing…" : "write posts."}</button>
     </div>
@@ -551,7 +552,7 @@ function guideCard() {
       <li class="${s && s.text ? "done" : ""}"><b>01</b><span>Upload a recording of a talk, panel or meeting, or its transcript.</span></li>
       <li class="done"><b>02</b><span>Pick who you're writing as. It changes the angle, not the facts.</span></li>
       <li class="${S.takeaway.trim() ? "done" : ""}"><b>03</b><span>Write the one line that stayed with you. Everything is built around it.</span></li>
-      <li><b>04</b><span>Get an X thread and a LinkedIn post. Edit, copy, post.</span></li>
+      <li><b>04</b><span>Get an X post and a LinkedIn post. Edit, copy, post.</span></li>
     </ol></div>`;
 }
 
@@ -564,9 +565,9 @@ function resultView() {
   const li = o ? o.linkedin : "";
   const hk = hook(li).length;
   let body;
-  if (busy && !o) body = `<div class="writing"><div class="big">Writing your posts…</div><div>Writing the X thread and the LinkedIn post in parallel, each in its own voice. Usually 20 to 40 seconds.</div></div>`;
+  if (busy && !o) body = `<div class="writing"><div class="big">Writing your posts…</div><div>Writing the X post and the LinkedIn post in parallel, each in its own voice. Usually 20 to 40 seconds.</div></div>`;
   else if (!o) body = `<div class="err">${esc(error || "Nothing written yet.")}</div>`;
-  else if (isX) body = `<div class="thread">${xs.map((p, i) => `<div class="post"><label class="sr" for="x-${i}">Post ${i + 1}</label><textarea id="x-${i}" data-x="${i}" rows="4">${esc(p)}</textarea><div class="foot"><span>${i === 0 ? "Opening post" : "Post " + (i + 1)}</span><span class="num ${p.length > 280 ? "over" : ""}" data-xc="${i}">${p.length}/280</span></div></div>`).join("")}</div>`;
+  else if (isX) body = `<div class="thread">${xs.map((p, i) => `<div class="post"><label class="sr" for="x-${i}">Post ${i + 1}</label><textarea id="x-${i}" data-x="${i}" rows="4">${esc(p)}</textarea><div class="foot"><span>${xs.length === 1 ? "X post" : "Post " + (i + 1)}</span><span class="num ${p.length > 280 ? "over" : ""}" data-xc="${i}">${p.length}/280</span></div></div>`).join("")}</div>`;
   else body = `<div class="post li"><div class="hookline"><b>Before “see more”:</b> <span id="hk">${esc(hook(li).slice(0, 210))}${hook(li).length > 210 ? "…" : ""}</span></div><label class="sr" for="li">LinkedIn post</label><textarea id="li">${esc(li)}</textarea><div class="foot"><span>LinkedIn</span><span class="num" id="lic">${li.length}/3000</span></div></div>`;
 
   return `
@@ -585,19 +586,21 @@ function resultView() {
     <div class="card tint"><div class="status"><div><h3>${busy ? "Writing" : o ? "Drafts ready" : "Not written"}</h3><p class="lead">${esc(S.source ? S.source.name : "")}</p></div><div class="status-dot ${busy ? "live" : ""}" aria-hidden="true"></div></div></div>
     <div class="gauges">
       ${isX
-        ? `<div class="gauge"><div class="cap">Posts</div>${ring(xs.length, 5, String(xs.length), "in thread")}</div>
-           <div class="gauge"><div class="cap">Longest</div>${ring(longest, 280, String(longest), "of 280", true)}</div>`
+        ? `<div class="gauge"><div class="cap">Length</div>${ring(longest, 280, String(longest), "of 280")}</div>
+           <div class="gauge"><div class="cap">Words</div>${ring(words(xs.join(" ")), 50, String(words(xs.join(" "))), "words", true)}</div>`
         : `<div class="gauge"><div class="cap">Hook</div>${ring(hk, 210, String(hk), "of 210", false)}</div>
            <div class="gauge"><div class="cap">Length</div>${ring(li.length, 3000, li.length.toLocaleString(), "chars", true)}</div>`}
     </div>
     <div class="card">
-      <div class="cap">Adjust ${isX ? "the thread" : "the post"}</div>
+      <div class="cap">Adjust the post</div>
       <div class="chips">
-        ${[["Shorter", "Make it about 30% shorter."], ["Sharper opening", "Make the opening more concrete and surprising."], ["More personal", "More first-person reaction, less summary of what was said."], ["More casual", "More casual, like a quick note written on the way home."]].map(([l, h]) => `<button class="chip" data-refine="${esc(h)}" type="button" ${o && !refining && !busy ? "" : "disabled"}>${l}</button>`).join("")}
+        ${(isX
+          ? [["Shorter", "Cut it to the fewest words that still land."], ["Punchier", "Make it hit harder: a stronger verb, a sharper contrast."], ["Drier", "Make it drier and more deadpan, a little funny."], ["Another take", "Write a different version of the same line, with a different angle."]]
+          : [["Shorter", "Make it about 30% shorter."], ["Sharper opening", "Make the opening more concrete and surprising."], ["More personal", "More first-person reaction, less summary of what was said."], ["More casual", "More casual, like a quick note written on the way home."]]).map(([l, h]) => `<button class="chip" data-refine="${esc(h)}" type="button" ${o && !refining && !busy ? "" : "disabled"}>${l}</button>`).join("")}
       </div>
     </div>
     <div class="card">
-      <div class="meta"><span>${isX ? "Copies the whole thread" : "Copies the full post"}</span><span class="num">${isX ? xs.length + " posts" : li.length + " chars"}</span></div>
+      <div class="meta"><span>Copies the full post</span><span class="num">${isX ? longest + " chars" : li.length + " chars"}</span></div>
       <a class="go" id="open" href="${isX ? "https://x.com/intent/post?text=" + encodeURIComponent(xs[0] || "") : "https://www.linkedin.com/feed/?shareActive=true"}" target="_blank" rel="noopener" ${o ? "" : 'aria-disabled="true" style="opacity:.35;pointer-events:none"'}>copy &amp; open ${isX ? "X" : "LinkedIn"}.</a>
       <div class="sec"><button class="btn" id="copy" type="button" ${o ? "" : "disabled"}>Copy only</button><button class="btn" id="again" type="button" ${busy || !ready() ? "disabled" : ""}>Write again</button><button class="btn" id="edit" type="button">Change the line</button></div>
     </div>
@@ -748,7 +751,7 @@ function bind() {
   $("#copy")?.addEventListener("click", async () => { try { await navigator.clipboard.writeText(text()); toast("Copied"); } catch { toast("Couldn't copy. Select the text and copy it yourself."); } });
   $("#open")?.addEventListener("click", async () => {
     let ok = false; try { await navigator.clipboard.writeText(text()); ok = true; } catch {}
-    toast(S.tab === "x" ? (ok ? "Thread copied. Post 1 is filled in on X." : "Post 1 is filled in on X.") : (ok ? "Copied. Paste it into the LinkedIn post box." : "Copy the post, then paste it on LinkedIn."));
+    toast(S.tab === "x" ? "Your post is filled in on X." : (ok ? "Copied. Paste it into the LinkedIn post box." : "Copy the post, then paste it on LinkedIn."));
   });
   $("#again")?.addEventListener("click", write);
   $("#edit")?.addEventListener("click", () => { mode = "compose"; render(); $("#line")?.focus(); });
@@ -771,7 +774,7 @@ async function write() {
   busy = true; error = ""; mode = "result"; S.out = null; render();
   try {
     const [rx, rl] = await Promise.all([ask(xPrompt(), { json: true }), ask(liPrompt(), { json: true })]);
-    const x = (rx && Array.isArray(rx.x) ? rx.x : []).map(String).map(s => s.trim()).filter(Boolean).slice(0, 5);
+    const x = (rx && Array.isArray(rx.x) ? rx.x : []).map(String).map(s => s.trim()).filter(Boolean).slice(0, 1);
     const li = rl && rl.linkedin ? String(rl.linkedin).trim() : "";
     if (!x.length || !li) throw { code: "invalid_json" };
     S.out = { x, linkedin: li };

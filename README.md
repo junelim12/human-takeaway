@@ -2,7 +2,7 @@
 
 **You write the takeaway. AI spreads it.**
 
-Upload a recording or transcript of a talk, panel or meeting, type the one line that stayed with you, and get an X thread and a LinkedIn post built around your own words. Every line you write is kept and tagged by industry and function, so over time it becomes a record of what you have learned.
+Upload a recording or transcript of a talk, panel or meeting, type the one line that stayed with you, and get an X post and a LinkedIn post built around your own words. Every line you write is kept and tagged by industry and function, so over time it becomes a record of what you have learned.
 
 Built for people in the Bay Area startup scene (job seekers, marketers, founders) who go to a lot of events and want to post about them consistently without sounding like AI.
 
@@ -13,9 +13,9 @@ Built for people in the Bay Area startup scene (job seekers, marketers, founders
 3. **Type your one line** (up to 140 characters). Pasting is disabled in this field on purpose: the line has to be written by you, and everything else is built around it.
 4. **Tag the event**: event name, industry and function are suggested from the transcript and can be changed.
 5. **Get your posts** in two tabs:
-   - **X**: a 3 to 5 post thread with a 280-character counter per post. "Copy & open X" opens the composer with the first post filled in.
+   - **X**: one short post, your line polished to sound native to X (ideally under 140 characters). "Copy & open X" opens the composer with it filled in.
    - **LinkedIn**: one post with a preview of what shows before "see more" and a character count.
-   - Both: Shorter / Sharper opening / More personal / More casual rewrites, copy, write again.
+   - Rewrites: Shorter / Punchier / Drier / Another take on X; Shorter / Sharper opening / More personal / More casual on LinkedIn.
 6. **My lines**: every line you have written, with date, event and tags. Filter by industry or function, see where your thinking concentrates, and reopen the posts made from any line.
 
 Design: monochrome, one large stage panel with a column of cards on the right. Light and dark themes.
