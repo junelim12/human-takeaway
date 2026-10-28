@@ -11,7 +11,7 @@ Built for people in the Bay Area startup scene (job seekers, marketers, founders
 1. **Upload** audio (.m4a, .mp3, .wav) or a transcript (.txt, .srt, .vtt). Pasting text also works. Subtitle timestamps are stripped automatically.
 2. **Pick who you're writing as**: Job seeker, Marketer or Founder. This changes the angle of the posts, never the facts.
 3. **Type your one line** (up to 140 characters). Pasting is disabled in this field on purpose: the line has to be written by you, and everything else is built around it.
-4. **Tag the event**: event name, industry and function are suggested from the transcript and can be changed.
+4. **Name the event and tag it**: type the event name however you call it. The posts judge how to use it: a recognizable public name may be mentioned once, while a private label (dates, abbreviations) is turned into a natural description instead of being copied. Industry and function tags are suggested from the transcript and can be changed.
 5. **Get your posts** in two tabs:
    - **X**: one short post, your line polished to sound native to X (ideally under 140 characters). "Copy & open X" opens the composer with it filled in.
    - **LinkedIn**: one post with a preview of what shows before "see more" and a character count.

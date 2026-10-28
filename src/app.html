@@ -246,7 +246,7 @@ const exampleLib = () => {
 };
 let S = (() => { try { return Object.assign(blank(), JSON.parse(localStorage.getItem(KEY) || "{}")); } catch { return blank(); } })();
 if (!Array.isArray(S.lib)) S.lib = exampleLib();
-if (!S.meta) S.meta = blankMeta();
+if (!S.meta) S.meta = { ...blankMeta(), event: S.meta.event };
 let filt = { industry: null, func: null };
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify({ ...S, source: S.source && { ...S.source, peaks: null } })); } catch {} };
 // source: { kind: "text"|"audio", name, text, words, duration, peaks, pending }
@@ -294,7 +294,7 @@ const NOT_A_SUMMARY = `THE TRANSCRIPT IS RAW MATERIAL, NOT THE SUBJECT.
 - Do not summarize, recap, or report what was said. No agenda, no list of speakers, no "the panel discussed".
 - The subject is the writer's one line: what THEY now believe. Use at most 1 or 2 details from the transcript, and only details a stranger would understand instantly.
 - Never open with "Just attended", "Key takeaways from", "I learned that", "Yesterday at", "Great event".
-- Never name the event, session, meetup or file. Labels you see may be the writer's private notes, not real names. If the setting matters, describe it generically in a few words ("a founder dinner", "a panel on infra").
+- Never name the file, and never take an event name from the transcript. The only event name you may use is the one the writer typed (see EVENT below).
 - Before answering, check the draft: if it reads like meeting notes, rewrite it as an opinion.
 
 ${PLAIN}`;
@@ -333,10 +333,23 @@ Then the product just had to make it go away.
 Trying this in my next demo."`;
 
 
+function eventBlock() {
+  const ev = (S.meta.event || "").trim();
+  if (!ev) return "EVENT: none given. Do not name any event. If the setting matters, describe it generically in a few words (\"a founder dinner\", \"a panel on infra\").";
+  return `EVENT, as the writer typed it: "${ev}"
+Decide how to use it:
+- If it reads like a real, public event name people would recognize or search for (an organizer or brand plus an event, e.g. "YC Demo Day", "a16z AI infra dinner"), you may mention it once, naturally, as setting or credit. Fix capitalization; do not add words that are not implied.
+- If it reads like a private label or note (dates, internal abbreviations, "session", "mtg", numbering), do not copy it. Turn it into a short natural description using only what the label and transcript make clear. Expand an abbreviation only if the transcript makes its meaning obvious; otherwise describe the setting generically.
+- Never include dates from the label.
+- X: mention the event only if a few words of it make the line land harder. Usually leave it out.
+- LinkedIn: weave it in once as setting, ideally in the first few lines, never as the hook's subject.`;
+}
+
 function context() {
   const r = ROLES[S.role];
   const tx = S.source.text.length > 60000 ? S.source.text.slice(0, 60000) + "\n[transcript truncated]" : S.source.text;
   return `WRITER: ${r.angle}
+${eventBlock()}
 ${S.meta.industries.length || S.meta.functions.length ? `TOPIC AREAS: ${[...S.meta.industries, ...S.meta.functions].join(", ")}` : ""}
 
 THE WRITER'S OWN LINE (the thesis; keep its meaning, you may sharpen the wording):
@@ -405,14 +418,12 @@ async function suggestTags() {
     const r = await ask(`Classify this recording of a talk, panel or meeting.
 Pick 1-2 industries ONLY from: ${INDUSTRIES.join(" | ")}
 Pick 1-2 job functions ONLY from: ${FUNCTIONS.join(" | ")}
-If the event's name is stated in the text, give it; otherwise "".
 TRANSCRIPT EXCERPT:
 """${s.text.slice(0, 8000)}"""
-Reply with only JSON: {"event":"","industries":[],"functions":[]}`, { json: true, quick: true });
+Reply with only JSON: {"industries":[],"functions":[]}`, { json: true, quick: true });
     const pick = (arr, allowed) => (Array.isArray(arr) ? arr : []).map(String).filter(x => allowed.includes(x)).slice(0, 2);
     if (!S.meta.industries.length) S.meta.industries = pick(r && r.industries, INDUSTRIES);
     if (!S.meta.functions.length) S.meta.functions = pick(r && r.functions, FUNCTIONS);
-    if (!S.meta.event && r && r.event) S.meta.event = String(r.event).slice(0, 80);
     S.meta.suggested = true;
   } catch { S.meta.suggested = false; }
   save(); if (mode === "compose") render();
@@ -439,10 +450,10 @@ async function takeFile(f) {
     const text = /\.(srt|vtt)$/i.test(f.name) ? cleanSubs(raw) : raw.trim();
     if (!text) { toast("That file is empty"); return; }
     S.source = { kind: "text", name: f.name, text, words: words(text) };
-    S.out = null; S.meta = blankMeta(); save(); render(); suggestTags(); return;
+    S.out = null; S.meta = { ...blankMeta(), event: S.meta.event }; save(); render(); suggestTags(); return;
   }
   S.source = { kind: "audio", name: f.name, text: "", words: 0, duration: 0, peaks: null, pending: true };
-  S.out = null; S.meta = blankMeta(); render();
+  S.out = null; S.meta = { ...blankMeta(), event: S.meta.event }; render();
   // waveform + duration (local, no upload)
   try {
     const buf = await f.arrayBuffer();
@@ -526,7 +537,7 @@ function composeView() {
       <div class="status"><div><h3>${s && s.text ? "Recording loaded" : "Waiting for a recording"}</h3><p class="lead">${s && s.text ? esc(meta) : "Nothing leaves your browser until you write"}</p></div><div class="status-dot ${s && s.pending ? "live" : ""}" aria-hidden="true"></div></div>
     </div>
     ${guideOpen ? guideCard() : ""}
-    ${s ? metaCard() : ""}
+    ${metaCard()}
     <fieldset class="card" style="margin:0">
       <legend class="sr">Who you are writing as</legend>
       <div class="cap">Writing as</div>
@@ -545,10 +556,10 @@ function metaCard() {
   const tagBtns = (list, chosen, kind) => list.map(t => `<button type="button" class="tg" data-tag="${kind}" data-v="${esc(t)}" aria-pressed="${chosen.includes(t)}">${esc(t)}</button>`).join("");
   return `<div class="card">
     <div class="cap">About this event</div>
-    <div class="field"><label for="ev" class="hint">Event name (for your records only, never used in posts)</label><input id="ev" type="text" maxlength="80" value="${esc(m.event)}" placeholder="e.g. AI Infra Founders Night"></div>
-    <div class="field"><span class="hint">Industry</span><div class="tagset">${tagBtns(INDUSTRIES, m.industries, "ind")}</div></div>
+    <div class="field"><label for="ev" class="hint">Event name</label><input id="ev" type="text" maxlength="80" value="${esc(m.event)}" placeholder="e.g. a16z AI infra dinner, YC Demo Day"><span class="hint">Write it however you call it. The posts use it where it reads naturally.</span></div>
+    ${S.source ? `<div class="field"><span class="hint">Industry</span><div class="tagset">${tagBtns(INDUSTRIES, m.industries, "ind")}</div></div>
     <div class="field"><span class="hint">Function</span><div class="tagset">${tagBtns(FUNCTIONS, m.functions, "fn")}</div></div>
-    <p class="hint">${m.suggested === "loading" ? "Suggesting tags from the transcript…" : m.suggested === true ? "Suggested from the transcript. Tap to change." : "Tags let you filter your lines later."}</p>
+    <p class="hint">${m.suggested === "loading" ? "Suggesting tags from the transcript…" : m.suggested === true ? "Suggested from the transcript. Tap to change." : "Tags let you filter your lines later."}</p>` : ""}
   </div>`;
 }
 
@@ -692,9 +703,9 @@ function bind() {
     const commit = () => {
       const v = pa.value.trim();
       const wasPasted = !!(S.source && S.source.name === "Pasted transcript");
-      if (!v) { if (wasPasted) { S.source = null; S.meta = blankMeta(); save(); render(); } return; }
+      if (!v) { if (wasPasted) { S.source = null; S.meta = { ...blankMeta(), event: S.meta.event }; save(); render(); } return; }
       if (wasPasted && S.source.text === v) return;
-      if (!wasPasted) S.meta = blankMeta();
+      if (!wasPasted) S.meta = { ...blankMeta(), event: S.meta.event };
       S.source = { kind: "text", name: "Pasted transcript", text: v, words: words(v) }; S.out = null; save();
       if (!wasPasted) { render(); return; }          // first text in: show the event card and status once
       const g = $("#go"); if (g) g.disabled = !ready() || busy;
