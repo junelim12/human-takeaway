@@ -2,722 +2,577 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@300;400;500&display=swap">
 <style>
-/* Layout: one narrow app column; a sticky top bar with the debrief counter, tabbed views below, a bottom sheet for the debrief conversation. Fog-grey ground, bridge-orange accent. */
+/* Layout: one rounded app sheet; a large stage panel on the left (upload, then the drafts), a narrow column of instrument cards on the right. Monochrome only. */
 :root {
-  --bg: #eef0f1;
-  --surface: #ffffff;
-  --surface-2: #f6f7f8;
-  --fg: #1b2226;
-  --muted: #5d6870;
-  --line: #d8dde0;
-  --accent: #c2401f;
-  --accent-ink: #ffffff;
-  --accent-soft: #fbe7e0;
-  --ok: #2f7a4f;
-  --ok-soft: #e1f1e7;
-  --bot: #e7ebee;
-  --shadow: 0 1px 2px rgba(20,30,40,.06), 0 6px 24px rgba(20,30,40,.06);
-  --display: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
-  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --page: #e9e9e7;
+  --sheet: #ffffff;
+  --panel: #f4f4f2;
+  --panel-2: #e6e6e3;
+  --ink: #111111;
+  --muted: #74746f;
+  --faint: #b9b9b4;
+  --line: #e3e3df;
+  --btn: #161616;
+  --btn-ink: #ffffff;
+  --sans: "Geist", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --mono: "Geist Mono", ui-monospace, Menlo, Consolas, monospace;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #121719; --surface: #1b2226; --surface-2: #20282d; --fg: #e8ecee; --muted: #98a4ab; --line: #2e383e;
-    --accent: #ef6a45; --accent-ink: #1a0f0b; --accent-soft: #3a211a; --ok: #6cc596; --ok-soft: #1c3227; --bot: #263036;
-    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 24px rgba(0,0,0,.25); color-scheme: dark;
+    --page: #0b0b0b; --sheet: #141414; --panel: #1c1c1c; --panel-2: #262626; --ink: #f1f1ee; --muted: #9b9b96; --faint: #4d4d4a; --line: #2a2a2a; --btn: #f1f1ee; --btn-ink: #111111; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #121719; --surface: #1b2226; --surface-2: #20282d; --fg: #e8ecee; --muted: #98a4ab; --line: #2e383e;
-  --accent: #ef6a45; --accent-ink: #1a0f0b; --accent-soft: #3a211a; --ok: #6cc596; --ok-soft: #1c3227; --bot: #263036;
-  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 24px rgba(0,0,0,.25); color-scheme: dark;
+  --page: #0b0b0b; --sheet: #141414; --panel: #1c1c1c; --panel-2: #262626; --ink: #f1f1ee; --muted: #9b9b96; --faint: #4d4d4a; --line: #2a2a2a; --btn: #f1f1ee; --btn-ink: #111111; color-scheme: dark;
 }
 * { box-sizing: border-box; }
-body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.5; }
-body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
-.wrap { max-width: 680px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 48px; }
-h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
-button, input, textarea, select { font: inherit; color: inherit; }
+body { background: var(--page); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+.outer { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px; }
+.sheet { max-width: 1240px; margin: 0 auto; background: var(--sheet); border-radius: 32px; padding: 28px; display: grid; gap: 28px; }
+@media (max-width: 560px) { .sheet { border-radius: 24px; padding: 16px; gap: 18px; } .outer { padding-block: 12px; } }
+h1, h2, h3, p { margin: 0; }
+button, input, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
-.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.cap { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 
-/* top bar */
-.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 18px 0; }
-.brand { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-.brand h1 { font-size: 28px; font-weight: 700; }
-.brand h1 span { color: var(--accent); }
-.tally { font-family: var(--mono); font-size: 12px; color: var(--muted); }
-.tally b { color: var(--fg); font-weight: 500; }
-.tabs { display: flex; gap: 4px; margin-top: 14px; border-bottom: 1px solid var(--line); overflow-x: auto; }
-.tab { background: none; border: 0; padding: 10px 12px; color: var(--muted); font-weight: 500; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
-.tab[aria-selected="true"] { color: var(--fg); border-color: var(--accent); }
-.tab .dot { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 6px; border-radius: 9px; background: var(--accent); color: var(--accent-ink); font-size: 11px; line-height: 18px; text-align: center; font-family: var(--mono); }
+/* header */
+.bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding-inline: 8px; }
+.bar-l { display: flex; align-items: center; gap: 28px; }
+.clock { font-size: 24px; font-weight: 400; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+.clock small { font-size: 14px; color: var(--muted); margin-left: 4px; }
+.brand { display: flex; align-items: center; gap: 8px; font-size: 22px; font-weight: 500; letter-spacing: -.02em; }
+.brand i { width: 22px; height: 22px; border-radius: 50%; background: var(--ink); position: relative; display: inline-block; }
+.brand i::after { content: ""; position: absolute; right: -3px; top: 6px; width: 10px; height: 10px; border-radius: 50%; background: var(--sheet); border: 2px solid var(--panel-2); }
+.bar-r { display: flex; gap: 10px; flex-wrap: wrap; }
+.pill { border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 9px 20px; color: var(--muted); font-size: 15px; display: inline-flex; align-items: center; gap: 8px; }
+.pill:hover { color: var(--ink); }
+.pill svg { width: 12px; height: 12px; }
+@media (max-width: 560px) { .clock { display: none; } .pill { padding: 7px 14px; font-size: 14px; } }
 
-.view { padding-top: 20px; display: grid; gap: 14px; }
-.intro { color: var(--muted); max-width: 60ch; margin: 0; }
+/* main grid */
+.grid { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); gap: 28px; align-items: stretch; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); gap: 18px; } }
+.col { display: grid; gap: 28px; align-content: start; }
+@media (max-width: 900px) { .col { gap: 18px; } }
 
-/* nudge: the proactive ask */
-.nudge { background: var(--surface); border-radius: 14px; box-shadow: var(--shadow); padding: 18px; display: grid; gap: 12px; border: 1px solid var(--line); }
-.nudge .who { display: flex; gap: 10px; align-items: center; }
-.avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-family: var(--display); font-weight: 700; font-size: 15px; flex: none; }
-.nudge .ask { font-size: 17px; font-weight: 500; margin: 0; }
-.nudge .meta { font-size: 13px; color: var(--muted); }
-.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+/* stage */
+.stage { position: relative; background: var(--panel); border-radius: 26px; padding: 44px 44px 40px; display: flex; flex-direction: column; gap: 28px; min-height: 640px; overflow: hidden; isolation: isolate; }
+.stage::after { content: ""; position: absolute; inset: auto 0 0 0; height: 45%; z-index: -1;
+  background:
+    radial-gradient(120% 60% at 15% 100%, var(--panel-2) 0 40%, transparent 70%),
+    radial-gradient(90% 50% at 85% 100%, var(--panel-2) 0 35%, transparent 70%),
+    linear-gradient(to bottom, transparent, var(--panel-2)); opacity: .9; }
+@media (max-width: 560px) { .stage { padding: 24px 20px 20px; min-height: 0; border-radius: 20px; } }
+.stage-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.stage h1 { font-size: clamp(38px, 5.4vw, 60px); font-weight: 500; letter-spacing: -.045em; line-height: 1; text-wrap: balance; }
+.stage .sub { font-size: clamp(17px, 1.8vw, 22px); color: var(--muted); font-weight: 300; line-height: 1.25; margin-top: 14px; max-width: 26ch; }
+.tag { background: var(--sheet); border-radius: 999px; padding: 10px 18px; font-size: 14px; letter-spacing: .06em; text-transform: uppercase; font-weight: 500; display: inline-flex; gap: 8px; align-items: center; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tag svg { width: 15px; height: 15px; flex: none; }
 
-.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 9px 14px; font-weight: 500; }
-.btn:hover { background: var(--surface-2); }
-.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-.btn.primary:hover { filter: brightness(1.05); }
-.btn.ghost { border-color: transparent; background: transparent; color: var(--muted); }
-.btn.small { padding: 6px 10px; font-size: 13px; border-radius: 8px; }
-.btn:disabled { opacity: .5; cursor: default; }
+/* dropzone */
+.drop { flex: 1; display: grid; place-items: center; border: 1.5px dashed var(--faint); border-radius: 20px; padding: 32px 20px; text-align: center; transition: background .2s, border-color .2s; min-height: 220px; }
+.drop.over { background: var(--sheet); border-color: var(--ink); }
+.drop .big { font-size: 20px; font-weight: 400; letter-spacing: -.01em; }
+.drop .small { color: var(--muted); font-size: 14px; margin-top: 6px; }
+.linkish { background: none; border: 0; padding: 0; text-decoration: underline; text-underline-offset: 3px; color: var(--ink); }
+.drop .row { margin-top: 18px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.loaded { flex: 1; display: grid; gap: 14px; align-content: start; min-height: 220px; }
+.wave { width: 100%; height: 90px; display: block; }
+.excerpt { color: var(--muted); font-size: 15px; line-height: 1.6; max-height: 160px; overflow: hidden; -webkit-mask-image: linear-gradient(#000 55%, transparent); mask-image: linear-gradient(#000 55%, transparent); white-space: pre-wrap; overflow-wrap: anywhere; }
+.paste { width: 100%; min-height: 220px; border: 1px solid var(--line); border-radius: 16px; background: var(--sheet); padding: 16px; resize: vertical; line-height: 1.55; }
+.note { font-size: 13px; color: var(--muted); }
 
-.empty { text-align: center; padding: 36px 16px; color: var(--muted); border: 1px dashed var(--line); border-radius: 14px; }
-.empty h3 { color: var(--fg); font-size: 18px; margin-bottom: 6px; }
+/* inset (like the duration box) */
+.inset { background: color-mix(in srgb, var(--sheet) 55%, var(--panel)); border: 1px solid var(--line); border-radius: 22px; padding: 22px 28px; display: grid; gap: 8px; box-shadow: 0 1px 0 rgba(255,255,255,.4) inset; }
+@media (max-width: 560px) { .inset { padding: 16px 18px; border-radius: 18px; } }
+.inset-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.oneliner { width: 100%; border: 0; background: transparent; font-size: clamp(22px, 2.8vw, 34px); font-weight: 300; letter-spacing: -.02em; padding: 4px 0; resize: none; line-height: 1.2; min-height: 1.4em; overflow: hidden; }
+.oneliner::placeholder { color: var(--faint); }
+.oneliner:focus { outline: none; }
+.inset:focus-within { border-color: var(--ink); }
 
-/* event list */
-.events { display: grid; gap: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
-.ev { display: grid; grid-template-columns: 54px 1fr auto; gap: 12px; padding: 14px; border-top: 1px solid var(--line); align-items: center; }
-.ev:first-child { border-top: 0; }
-.date { text-align: center; font-family: var(--mono); line-height: 1.1; }
-.date .m { font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: .06em; }
-.date .d { font-size: 22px; font-weight: 500; }
-.ev .t { font-weight: 600; min-width: 0; }
-.ev .s { font-size: 13px; color: var(--muted); }
-.ev > div:nth-child(2) { min-width: 0; }
-.pill { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; padding: 3px 8px; border-radius: 20px; white-space: nowrap; background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
-.pill.wait { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
-.pill.done { background: var(--ok-soft); color: var(--ok); border-color: transparent; }
-.ex { font-size: 10px; font-family: var(--mono); color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; margin-left: 6px; vertical-align: 2px; }
+/* side cards */
+.card { border: 1px solid var(--line); border-radius: 26px; padding: 26px 28px; display: grid; gap: 14px; background: var(--sheet); }
+.card.tint { background: var(--panel); border-color: transparent; }
+@media (max-width: 560px) { .card { padding: 20px; border-radius: 20px; } }
+.card h3 { font-size: 22px; font-weight: 500; letter-spacing: -.02em; }
+.card .lead { color: var(--muted); font-size: 15px; font-weight: 300; }
+.steps { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.steps li { display: grid; grid-template-columns: 26px 1fr; gap: 10px; align-items: baseline; color: var(--muted); }
+.steps li b { font-family: var(--mono); font-weight: 400; font-size: 12px; color: var(--ink); }
+.steps li.done { color: var(--ink); }
+.steps li.done b::before { content: "✓ "; }
+.status-dot { width: 40px; height: 40px; border-radius: 50%; background: var(--ink); flex: none; display: grid; place-items: center; }
+.status-dot::after { content: ""; width: 16px; height: 16px; border-radius: 50%; background: var(--panel); }
+.status-dot.live { animation: breathe 1.6s ease-in-out infinite; }
+@keyframes breathe { 50% { transform: scale(.82); } }
+@media (prefers-reduced-motion: reduce) { .status-dot.live { animation: none; } }
+.status { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
 
-/* forms */
-form.card, .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: grid; gap: 12px; }
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-@media (max-width: 520px) { .grid2 { grid-template-columns: 1fr; } }
-.field { display: grid; gap: 5px; min-width: 0; }
-.field label { font-size: 13px; font-weight: 500; }
-.field .hint { font-size: 12px; color: var(--muted); }
-input[type=text], input[type=url], input[type=date], input[type=time], textarea, select {
-  width: 100%; border: 1px solid var(--line); background: var(--surface-2); border-radius: 9px; padding: 9px 11px;
-}
-textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
-.roles { display: flex; gap: 8px; flex-wrap: wrap; }
-.roles label { border: 1px solid var(--line); border-radius: 20px; padding: 6px 12px; font-size: 14px; cursor: pointer; background: var(--surface-2); }
-.roles input { position: absolute; opacity: 0; pointer-events: none; }
-.roles input:checked + span { color: var(--accent); font-weight: 600; }
-.roles label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
-.roles label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.roles { display: grid; gap: 8px; }
+.role { display: grid; grid-template-columns: 18px 1fr; gap: 12px; align-items: start; padding: 12px 14px; border: 1px solid var(--line); border-radius: 16px; cursor: pointer; }
+.role input { appearance: none; width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--faint); margin: 3px 0 0; display: grid; place-items: center; }
+.role input:checked { border-color: var(--ink); }
+.role input:checked::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ink); }
+.role:has(input:checked) { background: var(--panel); border-color: var(--ink); }
+.role:has(input:focus-visible) { outline: 2px solid var(--ink); outline-offset: 2px; }
+.role .t { font-weight: 500; }
+.role .h { font-size: 13px; color: var(--muted); }
 
-/* drafts */
-.drafts-head { display: grid; gap: 4px; }
-.takeaway-quote { font-family: var(--display); font-size: 21px; font-weight: 500; line-height: 1.3; margin: 0; }
-.draft { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
-.draft header { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
-.draft header h3 { font-size: 16px; }
-.draft .why { font-size: 12px; color: var(--muted); }
-.draft textarea { border: 0; border-radius: 0; background: var(--surface); min-height: 260px; padding: 14px 16px; font-size: 15px; }
-.fold { position: relative; padding: 0 16px; }
-.fold span { display: block; border-top: 1px dashed var(--accent); font-family: var(--mono); font-size: 10px; color: var(--accent); text-align: right; padding-top: 2px; }
-.draft footer { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 16px 14px; flex-wrap: wrap; border-top: 1px solid var(--line); }
-.count { font-family: var(--mono); font-size: 12px; color: var(--muted); }
-.count.over { color: var(--accent); }
-.refine { display: flex; gap: 6px; flex-wrap: wrap; padding: 10px 16px 0; }
-.chip { border: 1px solid var(--line); background: var(--surface-2); border-radius: 16px; padding: 4px 10px; font-size: 12.5px; }
-.chip:hover { border-color: var(--accent); }
-.posted-banner { background: var(--ok-soft); color: var(--ok); border-radius: 10px; padding: 10px 14px; font-weight: 500; }
-.preview-line { font-size: 13px; color: var(--muted); padding: 10px 16px 0; }
-.preview-line b { color: var(--fg); font-weight: 600; }
+.meta { display: flex; justify-content: space-between; gap: 12px; color: var(--muted); font-size: 15px; flex-wrap: wrap; }
+.go { width: 100%; border: 0; border-radius: 999px; background: var(--btn); color: var(--btn-ink); padding: 22px 24px; font-size: 22px; font-weight: 500; letter-spacing: -.01em; display: flex; align-items: center; justify-content: center; gap: 14px; box-shadow: 0 10px 24px rgba(0,0,0,.14); text-decoration: none; }
+.go::before { content: ""; width: 14px; height: 14px; border-radius: 3px; background: currentColor; opacity: .9; }
+.go:disabled { opacity: .35; box-shadow: none; cursor: default; }
+@media (max-width: 560px) { .go { padding: 18px; font-size: 19px; } }
+.sec { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn { border: 1px solid var(--line); background: var(--sheet); border-radius: 999px; padding: 8px 16px; font-size: 14px; }
+.btn:hover { border-color: var(--ink); }
+.btn:disabled { opacity: .45; cursor: default; }
 
-/* sheet / chat */
-.scrim { position: fixed; inset: 0; background: rgba(10,15,18,.45); z-index: 20; display: flex; align-items: flex-end; justify-content: center; }
-.sheet { background: var(--bg); width: 100%; max-width: 680px; max-height: 92%; border-radius: 18px 18px 0 0; display: flex; flex-direction: column; box-shadow: 0 -10px 40px rgba(0,0,0,.2); }
-.sheet-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 14px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); border-bottom: 1px solid var(--line); }
-.sheet-head h2 { font-size: 17px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.chat { flex: 1; overflow-y: auto; padding: 16px max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px)); display: flex; flex-direction: column; gap: 10px; }
-.msg { max-width: 85%; padding: 10px 13px; border-radius: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
-.msg.bot { background: var(--bot); align-self: flex-start; border-bottom-left-radius: 4px; }
-.msg.me { background: var(--accent); color: var(--accent-ink); align-self: flex-end; border-bottom-right-radius: 4px; }
-.msg.typing { color: var(--muted); font-style: italic; }
-.suggest { display: grid; gap: 6px; align-self: stretch; }
-.suggest button { text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 9px 12px; }
-.suggest button:hover { border-color: var(--accent); }
-.composer { border-top: 1px solid var(--line); padding: 10px max(16px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); display: grid; gap: 8px; }
-.composer .line { display: flex; gap: 8px; align-items: flex-end; }
-.composer textarea { min-height: 44px; max-height: 160px; flex: 1; min-width: 0; }
-.mic { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); display: grid; place-items: center; flex: none; }
-.mic.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); animation: pulse 1.2s ease-in-out infinite; }
-@keyframes pulse { 50% { box-shadow: 0 0 0 6px var(--accent-soft); } }
-@media (prefers-reduced-motion: reduce) { .mic.on { animation: none; } }
-.quick { display: flex; gap: 6px; flex-wrap: wrap; }
+/* gauges */
+.gauges { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+@media (max-width: 900px) { .gauges { gap: 18px; } }
+.gauge { border: 1px solid var(--line); border-radius: 26px; padding: 24px; display: grid; gap: 18px; justify-items: center; }
+.gauge .cap { justify-self: start; }
+.ring { width: 132px; height: 132px; position: relative; }
+.ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring .track { stroke: var(--panel-2); }
+.ring .val { stroke: var(--ink); transition: stroke-dashoffset .5s ease; }
+.ring .val.soft { stroke: var(--muted); }
+.ring .center { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+.ring .center b { font-size: 28px; font-weight: 400; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.ring .center span { font-size: 11px; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+@media (max-width: 560px) { .ring { width: 104px; height: 104px; } .gauge { padding: 16px; border-radius: 20px; } }
 
-.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 9px 16px; border-radius: 20px; font-size: 14px; z-index: 30; max-width: calc(100% - 32px); }
-.notice { font-size: 13px; color: var(--muted); background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
-.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+/* tabs + drafts */
+.tabs { display: inline-flex; background: var(--sheet); border-radius: 999px; padding: 4px; gap: 2px; }
+.tabs button { border: 0; background: transparent; border-radius: 999px; padding: 9px 22px; font-weight: 500; color: var(--muted); }
+.tabs button[aria-selected="true"] { background: var(--btn); color: var(--btn-ink); }
+.thread { display: grid; gap: 12px; }
+.post { background: var(--sheet); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; }
+.post:focus-within { border-color: var(--ink); }
+.post textarea { width: 100%; border: 0; background: transparent; padding: 16px 18px 6px; resize: vertical; line-height: 1.55; font-size: 15.5px; min-height: 96px; display: block; }
+.post textarea:focus { outline: none; }
+.post .foot { display: flex; justify-content: space-between; align-items: center; padding: 6px 18px 12px; font-size: 12px; color: var(--muted); gap: 8px; }
+.post .foot .over { color: var(--ink); font-weight: 600; text-decoration: underline; }
+.post.li textarea { min-height: 360px; }
+.fold { margin: 0 18px; border-top: 1px dashed var(--faint); font-size: 11px; color: var(--muted); text-align: right; font-family: var(--mono); padding-top: 3px; }
+.hookline { padding: 14px 18px 0; font-size: 13px; color: var(--muted); }
+.hookline b { color: var(--ink); font-weight: 500; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { border: 1px solid var(--line); background: var(--sheet); border-radius: 999px; padding: 7px 14px; font-size: 14px; }
+.chip:hover { border-color: var(--ink); }
+.chip:disabled { opacity: .45; cursor: default; }
+.writing { flex: 1; display: grid; place-content: center; text-align: center; gap: 10px; min-height: 280px; color: var(--muted); }
+.writing .big { font-size: 22px; color: var(--ink); font-weight: 400; }
+.err { background: var(--sheet); border: 1px solid var(--ink); border-radius: 16px; padding: 14px 16px; font-size: 14px; }
+
+.toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--btn); color: var(--btn-ink); padding: 10px 18px; border-radius: 999px; font-size: 14px; z-index: 30; max-width: calc(100% - 32px); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.guide { display: grid; gap: 10px; }
 </style>
 
-<div class="wrap">
-  <div class="top">
-    <div class="brand">
-      <h1>Debrief<span>.</span></h1>
-      <div class="tally" id="tally"></div>
-    </div>
-    <nav class="tabs" role="tablist" aria-label="Sections">
-      <button class="tab" role="tab" id="tab-inbox" data-view="inbox" aria-selected="true">Inbox</button>
-      <button class="tab" role="tab" id="tab-events" data-view="events" aria-selected="false">Events</button>
-      <button class="tab" role="tab" id="tab-posts" data-view="posts" aria-selected="false">Posts</button>
-      <button class="tab" role="tab" id="tab-me" data-view="me" aria-selected="false">You</button>
-    </nav>
+<div class="outer">
+  <div class="sheet">
+    <header class="bar">
+      <div class="bar-l">
+        <div class="clock" id="clock" aria-hidden="true"></div>
+        <div class="brand"><i aria-hidden="true"></i>debrief.</div>
+      </div>
+      <div class="bar-r">
+        <button class="pill" id="how" type="button" aria-expanded="false">how it works <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3 4.5 6 7.5 9 4.5"/></svg></button>
+        <button class="pill" id="restart" type="button">new upload</button>
+      </div>
+    </header>
+    <main class="grid" id="main"></main>
   </div>
-
-  <main id="main"></main>
 </div>
-
-<div id="sheet-root"></div>
+<input type="file" id="file" class="sr" accept=".txt,.md,.srt,.vtt,text/plain,audio/*,.m4a,.mp3,.wav,.webm,.ogg">
 <div id="toast-root" aria-live="polite"></div>
 
 <script>
 (() => {
 "use strict";
-
-/* ---------- storage (per-browser) ---------- */
-const KEY = "debrief.v1";
-const load = () => { try { return JSON.parse(localStorage.getItem(KEY) || "null"); } catch { return null; } };
-const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {} };
-
-const uid = () => Math.random().toString(36).slice(2, 10);
-const now = () => Date.now();
-const H = 3600e3;
-const ymd = (t) => { const d = new Date(t); return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); };
-const hm = (t) => { const d = new Date(t); return String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0"); };
-
-function seed() {
-  const t = now();
-  return {
-    profile: { name: "", role: "job", focus: "", sample: "" },
-    events: [
-      { id: uid(), example: true, name: "AI Infra Founders Night", place: "SoMa, San Francisco", date: ymd(t - 3*H), end: hm(t - 2*H),
-        people: "Panel: 3 seed-stage infra founders", link: "", status: "upcoming", takeaway: "", context: "", drafts: [], postedIdx: null },
-      { id: uid(), example: true, name: "Product Leaders Fireside", place: "Palo Alto", date: ymd(t - 26*H), end: hm(t - 24*H),
-        people: "", link: "", status: "debriefed",
-        takeaway: "The best PMs I heard tonight write the press release before the spec.",
-        context: "Speaker said they kill about half their ideas at the press-release stage. Met two people moving from consulting into PM.",
-        drafts: [], postedIdx: null },
-      { id: uid(), example: true, name: "MBA x Startups Mixer", place: "Berkeley", date: ymd(t + 48*H), end: "20:30",
-        people: "", link: "", status: "upcoming", takeaway: "", context: "", drafts: [], postedIdx: null }
-    ],
-    asked: {}
-  };
-}
-let S = load() || seed();
-if (!S.profile) S.profile = seed().profile;
-
-const endTime = (ev) => { const [y,m,d] = ev.date.split("-").map(Number); const [hh,mm] = (ev.end || "21:00").split(":").map(Number); return new Date(y, m-1, d, hh, mm).getTime(); };
-const ended = (ev) => endTime(ev) <= now();
-const askAt = (ev) => ev.remindAt || endTime(ev);
-const awaiting = () => S.events.filter(e => e.status === "upcoming" && askAt(e) <= now()).sort((a,b) => askAt(b) - askAt(a));
-
-function ago(t) {
-  const m = Math.round((now() - t) / 60000);
-  if (m < 60) return m + " min ago";
-  const h = Math.round(m / 60);
-  if (h < 24) return h + " h ago";
-  return Math.round(h / 24) + " d ago";
-}
+const $ = (s, el = document) => el.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
 
-/* ---------- Claude: artifact runtime, or the site's own /api/generate ---------- */
-let samplePromise = null;
-function getSample() {
-  if (!samplePromise) {
-    samplePromise = (window.claude && typeof window.claude.use === "function")
-      ? window.claude.use("sample").catch(() => null)
-      : Promise.resolve(null);
-  }
-  return samplePromise;
-}
-async function ask(prompt, { json = false, quick = false, fresh = false } = {}) {
+/* ---------------- state ---------------- */
+const KEY = "debrief.v2";
+const blank = () => ({ role: "job", source: null, takeaway: "", out: null, tab: "x" });
+let S = (() => { try { return Object.assign(blank(), JSON.parse(localStorage.getItem(KEY) || "{}")); } catch { return blank(); } })();
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify({ ...S, source: S.source && { ...S.source, peaks: null } })); } catch {} };
+// source: { kind: "text"|"audio", name, text, words, duration, peaks, pending }
+let busy = false, error = "", guideOpen = false, pasting = false, refining = false;
+
+const ROLES = {
+  job: { t: "Job seeker", h: "Show how you think, so hiring managers notice.", angle: "a job seeker. The posts should show sharp domain thinking and curiosity a hiring manager would notice. Never beg for a job and never say 'open to work'." },
+  mkt: { t: "Marketer", h: "Turn the talk into a point of view your audience shares.", angle: "a marketer. The posts should give a clear, useful point of view the audience will want to share, with concrete examples. No campaign-speak, no slogans." },
+  founder: { t: "Founder", h: "Earn trust with a clear take, without pitching.", angle: "a founder. The posts should take a clear position tied to what they are building, earning trust from customers, hires and investors, without pitching the product." }
+};
+
+/* ---------------- Claude ---------------- */
+let sampleP = null;
+const getSample = () => sampleP ||= (window.claude && typeof window.claude.use === "function") ? window.claude.use("sample").catch(() => null) : Promise.resolve(null);
+const inArtifact = () => !!(window.claude && typeof window.claude.use === "function");
+async function ask(prompt, { json = false } = {}) {
   const sample = await getSample();
   if (sample) {
-    const opts = { modelTier: quick ? "quick" : "default" };
-    if (fresh) opts.cache = false;
-    if (json) return await sample.json(prompt, opts);
-    return (await sample(prompt, opts)).text;
+    const opts = { cache: false };
+    return json ? await sample.json(prompt, opts) : (await sample(prompt, opts)).text;
   }
-  // Standalone deployment: serverless endpoint holds the API key.
-  const r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, json, quick }) });
-  if (!r.ok) throw { code: "upstream_error", message: "HTTP " + r.status };
-  const data = await r.json();
-  return data.result;
+  const r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, json }) });
+  if (!r.ok) throw { code: r.status === 429 ? "rate_limited" : "upstream_error" };
+  return (await r.json()).result;
 }
 function errCopy(e) {
   const c = e && e.code;
-  if (c === "not_granted" || c === "sampling_disabled") return "Drafting needs permission to use Claude. Allow it from this page's permissions and try again.";
-  if (c === "rate_limited") return "Too many drafts at once. Wait a minute, then try again.";
-  if (c === "invalid_json") return "The draft came back in an odd shape. Try again.";
-  if (c === "refused") return "Claude couldn't write from that input. Try rewording the takeaway.";
-  return "Couldn't reach Claude just now. Try again.";
+  if (c === "not_granted" || c === "sampling_disabled") return "Writing needs permission to use Claude. Allow it from this page's permissions, then try again.";
+  if (c === "rate_limited") return "Too many requests right now. Wait a minute, then try again.";
+  if (c === "prompt_too_large") return "That transcript is too long. Trim it to the part that matters and try again.";
+  if (c === "refused") return "Claude couldn't write from this input. Try a different line.";
+  return "Couldn't finish writing. Try again.";
 }
 
-const ROLE = {
-  job: { label: "Looking for my next role", angle: "a job seeker. The post should quietly show sharp domain thinking and curiosity a hiring manager would notice. Never beg for a job or say 'open to work' unless the notes say so." },
-  mba: { label: "MBA student", angle: "an MBA student. Frame it as what they learned and how it changes their view of the industry. Avoid sounding like a class assignment." },
-  op: { label: "Working at a startup", angle: "someone working at a startup. Give a point of view from inside the work, practical and specific." },
-  founder: { label: "Founder", angle: "a founder. Take a clear point of view tied to what they are building, without pitching the company." }
-};
+const NO = `Never use: em dashes, "thrilled", "excited to share", "game-changer", "delve", "unlock", "leverage", "in today's fast-paced world", "Here's the thing", "Let that sink in", emoji bullets. Never invent facts, names, numbers or quotes that are not in the transcript.`;
 
-function draftPrompt(ev) {
-  const p = S.profile;
-  const role = ROLE[p.role] || ROLE.job;
-  return `You ghostwrite LinkedIn posts for people in the San Francisco Bay Area tech scene who just attended an event.
+function mainPrompt() {
+  const r = ROLES[S.role];
+  const tx = S.source.text.length > 60000 ? S.source.text.slice(0, 60000) + "\n[transcript truncated]" : S.source.text;
+  return `You turn recorded talks, meetings and conversations into social posts written in the voice of the person who was there.
 
-THE WRITER
-- Name: ${p.name || "(not given)"}
-- Situation: ${role.angle}
-- Interests / what they want to be known for: ${p.focus || "(not given)"}
-${p.sample ? `- A post they wrote before, for voice only (match rhythm and vocabulary, never copy content):\n"""${p.sample.slice(0, 1500)}"""` : ""}
+WRITER: ${r.angle}
 
-THE EVENT
-- Name: ${ev.name}
-- Where: ${ev.place || "(not given)"}
-- Speakers / people: ${ev.people || "(not given)"}
+THEIR ONE LINE (the thesis of everything you write; keep its meaning, you may sharpen the wording):
+"${S.takeaway}"
 
-THEIR TAKEAWAY (the thesis of every post; keep its meaning, sharpen the wording):
-"${ev.takeaway}"
+TRANSCRIPT (source of specifics: moments, quotes, numbers, names):
+"""${tx}"""
 
-THEIR RAW NOTES (material for specifics: quotes, numbers, moments, people. Use only what is here; never invent facts, names, numbers or quotes):
-"""${(ev.context || "(none)").slice(0, 6000)}"""
+Write two things in English, first person, plain spoken, specific over grand.
 
-Write 3 LinkedIn posts in English, each with a different opening:
-1. "story": opens on a concrete moment from the event.
-2. "contrarian": opens by naming a common belief, then shows what the event revealed instead.
-3. "lessons": opens with the takeaway, then 2-4 short numbered lessons drawn from the notes.
+1. X: a thread of 3 to 5 posts. Post 1 must stand alone and make people stop scrolling; it states the line in a fresh way. Each post at most 270 characters. No hashtags. No "1/" numbering. Last post ends with a question or a crisp closing thought.
 
-RULES FOR EVERY POST
-- The first two lines must make someone click "see more": under 200 characters together, no throat-clearing.
-- 120-220 words. Short paragraphs of 1-2 sentences, blank line between them.
-- First person, plain spoken English, like a smart person talking. Specific beats grand.
-- Mention the event by name once. Credit speakers only if names are given in the notes or speakers field.
-- End with one genuine question to readers.
-- At most 3 hashtags on the last line, or none.
-- Never use: "thrilled", "excited to share", "game-changer", "delve", "in today's fast-paced world", "unlock", "leverage", em dashes, emoji bullets, "Here's the thing", "Let that sink in".
+2. LinkedIn: one post of 150 to 230 words. The first two lines decide whether anyone clicks "see more", so keep them under 200 characters and make them concrete. Short paragraphs of one or two sentences with a blank line between. End with one genuine question. At most 3 hashtags on the final line, or none.
 
-Reply with only JSON: {"drafts":[{"style":"story","why":"<6-10 words on who this version suits>","text":"<the post>"},{"style":"contrarian",...},{"style":"lessons",...}]}`;
+${NO}
+
+Reply with only JSON: {"x":["post 1","post 2",...],"linkedin":"the full post"}`;
+}
+function refinePrompt(how) {
+  const r = ROLES[S.role];
+  const isX = S.tab === "x";
+  const cur = isX ? S.out.x.map((p, i) => `[${i + 1}] ${p}`).join("\n\n") : S.out.linkedin;
+  return `Rewrite this ${isX ? "X thread" : "LinkedIn post"} written by ${r.angle}
+Their one line: "${S.takeaway}".
+Change requested: ${how}
+Keep the same thesis and facts. ${isX ? "Each post at most 270 characters, no hashtags, no numbering." : "First two lines under 200 characters, short paragraphs, a closing question."}
+${NO}
+
+CURRENT:
+"""${cur}"""
+
+Reply with only JSON: ${isX ? '{"x":["post 1","post 2",...]}' : '{"linkedin":"the full post"}'}`;
 }
 
-function refinePrompt(ev, text, how) {
-  return `Here is a LinkedIn post draft about the event "${ev.name}". The writer's takeaway: "${ev.takeaway}".
-Their raw notes (do not invent beyond these): """${(ev.context || "").slice(0, 3000)}"""
-
-DRAFT:
-"""${text}"""
-
-Rewrite it: ${how}
-Keep the same thesis, the hook-first opening (first two lines under 200 characters), short paragraphs, a closing question, no em dashes, no hype words. Reply with only the rewritten post text.`;
+/* ---------------- files ---------------- */
+function cleanSubs(t) {
+  return t.replace(/^WEBVTT.*$/m, "")
+    .split(/\r?\n/)
+    .filter(l => l.trim() && !/^\d+$/.test(l.trim()) && !/-->/.test(l) && !/^(NOTE|STYLE)\b/.test(l))
+    .map(l => l.replace(/<[^>]+>/g, "").trim())
+    .reduce((a, l) => (a.length && a[a.length - 1] === l ? a : (a.push(l), a)), [])
+    .join(" ");
 }
+const words = (t) => (t.trim().match(/\S+/g) || []).length;
+const fmtDur = (s) => { s = Math.round(s || 0); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return [h, m, x].map(v => String(v).padStart(2, "0")).join(":"); };
 
-function suggestPrompt(ev, dump) {
-  return `Someone just left the event "${ev.name}" and dumped these raw thoughts:
-"""${dump.slice(0, 5000)}"""
-Propose 3 different one-sentence takeaways they could build a LinkedIn post around. Each under 20 words, first person where natural, specific to what they said (no generic advice), each a different angle.
-Reply with only a JSON array of 3 strings.`;
-}
-
-/* ---------- UI helpers ---------- */
-const $ = (s, el = document) => el.querySelector(s);
-function toast(msg) {
-  const root = $("#toast-root");
-  root.innerHTML = `<div class="toast">${esc(msg)}</div>`;
-  clearTimeout(toast.t); toast.t = setTimeout(() => root.innerHTML = "", 2400);
-}
-async function copyText(text) {
-  try { await navigator.clipboard.writeText(text); return true; } catch { return false; }
-}
-
-let view = "inbox";
-let openDraftsFor = null;
-
-function tally() {
-  const att = S.events.filter(e => ended(e)).length;
-  const deb = S.events.filter(e => ["debriefed","posted"].includes(e.status)).length;
-  const post = S.events.filter(e => e.status === "posted").length;
-  $("#tally").innerHTML = `<b>${att}</b> attended · <b>${deb}</b> debriefed · <b>${post}</b> posted`;
-  const n = awaiting().length;
-  $("#tab-inbox").innerHTML = "Inbox" + (n ? `<span class="dot">${n}</span>` : "");
-}
-
-function setView(v) {
-  view = v;
-  document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.view === v)));
-  render();
-}
-document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => { openDraftsFor = null; setView(t.dataset.view); }));
-
-function render() {
-  tally();
-  const main = $("#main");
-  if (openDraftsFor) { main.innerHTML = draftsView(openDraftsFor); bindDrafts(openDraftsFor); return; }
-  if (view === "inbox") { main.innerHTML = inboxView(); bindInbox(); }
-  if (view === "events") { main.innerHTML = eventsView(); bindEvents(); }
-  if (view === "posts") { main.innerHTML = postsView(); bindPosts(); }
-  if (view === "me") { main.innerHTML = meView(); bindMe(); }
-}
-
-/* ---------- Inbox: the proactive ask ---------- */
-function inboxView() {
-  const list = awaiting();
-  const ready = S.events.filter(e => e.status === "debriefed").sort((a,b) => endTime(b) - endTime(a));
-  let h = `<section class="view">`;
-  if (!S.profile.name) {
-    h += `<div class="notice">Set up your profile in <b>You</b> so drafts sound like you and fit what you're going for.</div>`;
+async function takeFile(f) {
+  if (!f) return;
+  error = "";
+  const isAudio = (f.type || "").startsWith("audio/") || /\.(m4a|mp3|wav|webm|ogg|aac|flac)$/i.test(f.name);
+  if (!isAudio) {
+    const raw = await f.text();
+    const text = /\.(srt|vtt)$/i.test(f.name) ? cleanSubs(raw) : raw.trim();
+    if (!text) { toast("That file is empty"); return; }
+    S.source = { kind: "text", name: f.name, text, words: words(text) };
+    S.out = null; save(); render(); return;
   }
-  if (list.length === 0 && ready.length === 0) {
-    h += `<div class="empty"><h3>Nothing to debrief</h3>Add the events you're going to. When one ends, Debrief asks you for the one thing worth posting.<div class="row" style="justify-content:center;margin-top:14px"><button class="btn primary" id="go-add">Add an event</button></div></div>`;
-  }
-  for (const ev of list) {
-    h += `<article class="nudge" data-id="${ev.id}">
-      <div class="who"><div class="avatar" aria-hidden="true">D</div><div><div class="label">Debrief · ${esc(ago(endTime(ev)))}</div></div></div>
-      <p class="ask">How was <b>${esc(ev.name)}</b>${ev.example ? '<span class="ex">example</span>' : ""}? What's the one thing you'll still remember tomorrow?</p>
-      <div class="meta">${esc(ev.place || "")}${ev.people ? " · " + esc(ev.people) : ""}</div>
-      <div class="row">
-        <button class="btn primary" data-act="debrief">Answer</button>
-        <button class="btn ghost" data-act="later">Remind me tomorrow</button>
-        <button class="btn ghost" data-act="skip">Skip this one</button>
-      </div>
-    </article>`;
-  }
-  if (ready.length) {
-    h += `<div class="label" style="margin-top:8px">Drafts waiting for you</div><div class="events">`;
-    for (const ev of ready) h += evRow(ev, `<button class="btn small" data-open="${ev.id}">Open drafts</button>`);
-    h += `</div>`;
-  }
-  return h + `</section>`;
-}
-function bindInbox() {
-  $("#go-add")?.addEventListener("click", () => setView("events"));
-  document.querySelectorAll(".nudge").forEach(card => {
-    const ev = S.events.find(e => e.id === card.dataset.id);
-    card.querySelector('[data-act="debrief"]').onclick = () => openDebrief(ev);
-    card.querySelector('[data-act="later"]').onclick = () => {
-      const t = new Date(); t.setDate(t.getDate() + 1); t.setHours(8, 30, 0, 0);
-      ev.remindAt = t.getTime(); save(); render(); toast("I'll ask again tomorrow at 8:30");
-    };
-    card.querySelector('[data-act="skip"]').onclick = () => { ev.status = "skipped"; save(); render(); toast("Skipped"); };
-  });
-  bindOpenButtons();
-}
-function bindOpenButtons() {
-  document.querySelectorAll("[data-open]").forEach(b => b.onclick = () => {
-    const ev = S.events.find(e => e.id === b.dataset.open);
-    openDraftsFor = ev; render(); window.scrollTo(0, 0);
-    if (!ev.drafts.length) generate(ev);
-  });
-}
-
-/* ---------- Events ---------- */
-function evRow(ev, right) {
-  const [y, m, d] = ev.date.split("-").map(Number);
-  const mon = new Date(y, m - 1, d).toLocaleString("en-US", { month: "short" });
-  return `<div class="ev"><div class="date"><div class="m">${mon}</div><div class="d">${d}</div></div>
-    <div><div class="t">${esc(ev.name)}${ev.example ? '<span class="ex">example</span>' : ""}</div><div class="s">${esc(ev.place || "")}${ev.end ? " · ends " + esc(ev.end) : ""}</div></div>
-    <div>${right}</div></div>`;
-}
-function statusPill(ev) {
-  if (ev.status === "posted") return `<span class="pill done">Posted</span>`;
-  if (ev.status === "debriefed") return `<button class="btn small" data-open="${ev.id}">Drafts</button>`;
-  if (ev.status === "skipped") return `<span class="pill">Skipped</span>`;
-  if (ended(ev)) return `<span class="pill wait">Waiting</span>`;
-  return `<span class="pill">Upcoming</span>`;
-}
-function eventsView() {
-  const sorted = [...S.events].sort((a,b) => endTime(b) - endTime(a));
-  const t = new Date(); const def = ymd(t.getTime());
-  return `<section class="view">
-    <form class="card" id="add-form">
-      <h2 style="font-size:18px">Add an event you're going to</h2>
-      <p class="intro" style="font-size:13px">Debrief checks in after it ends. Paste the Luma or Eventbrite link if you have it.</p>
-      <div class="field"><label for="f-name">Event name</label><input type="text" id="f-name" required placeholder="e.g. Women in AI Breakfast"></div>
-      <div class="grid2">
-        <div class="field"><label for="f-date">Date</label><input type="date" id="f-date" value="${def}" required></div>
-        <div class="field"><label for="f-end">Ends at</label><input type="time" id="f-end" value="21:00" required></div>
-      </div>
-      <div class="grid2">
-        <div class="field"><label for="f-place">Where</label><input type="text" id="f-place" placeholder="e.g. Mission, SF"></div>
-        <div class="field"><label for="f-link">Event link</label><input type="url" id="f-link" placeholder="https://lu.ma/..."></div>
-      </div>
-      <div class="field"><label for="f-people">Speakers or hosts</label><input type="text" id="f-people" placeholder="Names you might want to credit"><span class="hint">Only names you add here or in your notes get mentioned in drafts.</span></div>
-      <div class="row"><button class="btn primary" type="submit">Add event</button><button class="btn ghost" type="button" id="f-now">It just ended, debrief now</button></div>
-    </form>
-    <div class="label">Your events</div>
-    ${sorted.length ? `<div class="events">${sorted.map(ev => evRow(ev, statusPill(ev) + ` <button class="btn small ghost" data-del="${ev.id}" aria-label="Remove ${esc(ev.name)}">✕</button>`)).join("")}</div>` : `<div class="empty">No events yet.</div>`}
-  </section>`;
-}
-function bindEvents() {
-  const f = $("#add-form");
-  const read = () => ({
-    id: uid(), name: $("#f-name").value.trim(), date: $("#f-date").value, end: $("#f-end").value,
-    place: $("#f-place").value.trim(), link: $("#f-link").value.trim(), people: $("#f-people").value.trim(),
-    status: "upcoming", takeaway: "", context: "", drafts: [], postedIdx: null
-  });
-  f.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const ev = read(); if (!ev.name) return;
-    S.events.push(ev); save(); render();
-    toast(ended(ev) ? "Added. It's in your Inbox." : "Added. I'll check in when it ends.");
-  });
-  $("#f-now").onclick = () => {
-    const name = $("#f-name").value.trim();
-    if (!name) { $("#f-name").focus(); toast("Name the event first"); return; }
-    const ev = read(); const t = now() - 60000; ev.date = ymd(t); ev.end = hm(t);
-    S.events.push(ev); save(); render(); openDebrief(ev);
-  };
-  document.querySelectorAll("[data-del]").forEach(b => b.onclick = () => {
-    if (b.dataset.armed) { S.events = S.events.filter(e => e.id !== b.dataset.del); save(); render(); toast("Removed"); }
-    else { b.dataset.armed = "1"; b.textContent = "Remove?"; setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.textContent = "✕"; } }, 2500); }
-  });
-  bindOpenButtons();
-}
-
-/* ---------- Posts ---------- */
-function postsView() {
-  const done = S.events.filter(e => e.drafts.length || e.status === "posted").sort((a,b) => endTime(b) - endTime(a));
-  if (!done.length) return `<section class="view"><div class="empty"><h3>No drafts yet</h3>Answer a check-in from your Inbox and your drafts show up here.</div></section>`;
-  return `<section class="view"><div class="events">${done.map(ev => evRow(ev,
-    (ev.status === "posted" ? `<span class="pill done">Posted</span> ` : "") + `<button class="btn small" data-open="${ev.id}">Open</button>`)).join("")}</div></section>`;
-}
-function bindPosts() { bindOpenButtons(); }
-
-/* ---------- Profile ---------- */
-function meView() {
-  const p = S.profile;
-  return `<section class="view">
-    <form class="card" id="me-form">
-      <h2 style="font-size:18px">About you</h2>
-      <p class="intro" style="font-size:13px">Drafts use this to pick the angle. It stays in this browser.</p>
-      <div class="field"><label for="p-name">Your name</label><input type="text" id="p-name" value="${esc(p.name)}" placeholder="First name is fine"></div>
-      <fieldset class="field" style="border:0;padding:0;margin:0"><legend style="font-size:13px;font-weight:500;margin-bottom:6px">Where you are right now</legend>
-        <div class="roles">${Object.entries(ROLE).map(([k, r]) => `<label><input type="radio" name="role" value="${k}" ${p.role === k ? "checked" : ""}><span>${r.label}</span></label>`).join("")}</div>
-      </fieldset>
-      <div class="field"><label for="p-focus">What you want to be known for</label><input type="text" id="p-focus" value="${esc(p.focus)}" placeholder="e.g. AI infra go-to-market, climate fintech, B2B product"></div>
-      <div class="field"><label for="p-sample">A LinkedIn post you've written (optional)</label><textarea id="p-sample" placeholder="Paste one so drafts match your voice">${esc(p.sample)}</textarea></div>
-      <div class="row"><button class="btn primary" type="submit">Save</button></div>
-    </form>
-    <div class="card">
-      <h2 style="font-size:16px">Start fresh</h2>
-      <p class="intro" style="font-size:13px">Removes the example events and everything you've added in this browser.</p>
-      <div class="row"><button class="btn" id="reset">Clear all data</button></div>
-    </div>
-  </section>`;
-}
-function bindMe() {
-  $("#me-form").addEventListener("submit", (e) => {
-    e.preventDefault();
-    S.profile = { name: $("#p-name").value.trim(), role: (document.querySelector('input[name="role"]:checked') || {}).value || "job", focus: $("#p-focus").value.trim(), sample: $("#p-sample").value.trim() };
-    save(); render(); toast("Saved");
-  });
-  const r = $("#reset");
-  r.onclick = () => {
-    if (!r.dataset.armed) { r.dataset.armed = "1"; r.textContent = "Tap again to clear everything"; return; }
-    S = { profile: S.profile, events: [], asked: {} }; save(); setView("inbox"); toast("Cleared");
-  };
-}
-
-/* ---------- Debrief conversation ---------- */
-let SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-function openDebrief(ev) {
-  const root = $("#sheet-root");
-  const convo = []; // {who, text}
-  let step = "takeaway"; // takeaway | context | dump | pick
-  let dump = "";
-  root.innerHTML = `<div class="scrim" id="scrim"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-title">
-    <div class="sheet-head"><h2 id="sh-title">${esc(ev.name)}</h2><button class="btn small ghost" id="sh-close">Close</button></div>
-    <div class="chat" id="chat"></div>
-    <div class="composer">
-      <div class="quick" id="quick"></div>
-      <div class="line">
-        <label for="say" class="sr">Your reply</label>
-        <textarea id="say" rows="1" placeholder="Type your answer"></textarea>
-        <button class="mic" id="mic" type="button" aria-label="Speak your answer" hidden>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
-        </button>
-        <button class="btn primary" id="send" type="button">Send</button>
-      </div>
-    </div>
-  </div></div>`;
-  const chat = $("#chat"), say = $("#say"), quick = $("#quick");
-  const close = () => { stopMic(); root.innerHTML = ""; render(); };
-  $("#sh-close").onclick = close;
-  $("#scrim").addEventListener("click", (e) => { if (e.target.id === "scrim") close(); });
-  document.addEventListener("keydown", function onEsc(e) { if (e.key === "Escape" && root.innerHTML) { close(); document.removeEventListener("keydown", onEsc); } });
-
-  const push = (who, text, cls = "") => { convo.push({ who, text }); const d = document.createElement("div"); d.className = `msg ${who} ${cls}`; d.textContent = text; chat.appendChild(d); chat.scrollTop = chat.scrollHeight; return d; };
-  const setQuick = (items) => { quick.innerHTML = ""; for (const [label, fn] of items) { const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.textContent = label; b.onclick = fn; quick.appendChild(b); } };
-
-  // Opening question
-  push("bot", `How was ${ev.name}? What's the one thing you'll still remember tomorrow? A single line is enough.`);
-  setQuick([["Not sure yet, help me find it", () => { step = "dump"; push("me", "Not sure yet"); push("bot", "No problem. Just dump whatever's in your head: a line someone said, who you met, what surprised you, what annoyed you. Messy is fine."); setQuick([]); say.placeholder = "Brain dump"; say.focus(); }]]);
-  setTimeout(() => say.focus(), 50);
-
-  async function submit() {
-    const text = say.value.trim();
-    if (!text) return;
-    say.value = ""; say.style.height = "";
-    push("me", text);
-    if (step === "takeaway") {
-      ev.takeaway = text; step = "context";
-      push("bot", "Good one. Anything behind it? A quote, a moment, someone you met, why it stuck with you. This is what makes the post sound like you were actually there.");
-      say.placeholder = "Add details (optional)";
-      setQuick([["Skip, write the drafts", () => finish("")]]);
-    } else if (step === "context") {
-      finish(text);
-    } else if (step === "dump") {
-      dump = text; step = "pick"; setQuick([]);
-      const typing = push("bot", "Reading that…", "typing");
-      try {
-        const opts = await ask(suggestPrompt(ev, dump), { json: true, quick: true, fresh: true });
-        typing.remove();
-        const list = (Array.isArray(opts) ? opts : []).map(String).filter(Boolean).slice(0, 3);
-        if (!list.length) throw { code: "invalid_json" };
-        push("bot", "Here's what I heard. Pick the one that feels most like you, or type your own.");
-        const box = document.createElement("div"); box.className = "suggest";
-        list.forEach(s => { const b = document.createElement("button"); b.type = "button"; b.textContent = s; b.onclick = () => { box.remove(); push("me", s); ev.takeaway = s; finish(dump); }; box.appendChild(b); });
-        chat.appendChild(box); chat.scrollTop = chat.scrollHeight;
-        say.placeholder = "Or write your own takeaway";
-      } catch (e) {
-        typing.remove(); push("bot", errCopy(e) + " You can also type your takeaway yourself.");
-      }
-    } else if (step === "pick") {
-      ev.takeaway = text; finish(dump);
-    }
-  }
-  function finish(ctx) {
-    stopMic();
-    ev.context = ctx; ev.status = "debriefed"; ev.drafts = []; save();
-    root.innerHTML = ""; openDraftsFor = ev; render(); window.scrollTo(0, 0);
-    generate(ev);
-  }
-  $("#send").onclick = submit;
-  say.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); submit(); } });
-  say.addEventListener("input", () => { say.style.height = "auto"; say.style.height = Math.min(say.scrollHeight, 160) + "px"; });
-
-  // Voice input where the browser allows it
-  let rec = null;
-  const mic = $("#mic");
-  function stopMic() { try { rec && rec.stop(); } catch {} rec = null; mic && mic.classList.remove("on"); }
-  if (SR) {
-    mic.hidden = false;
-    mic.onclick = () => {
-      if (rec) { stopMic(); return; }
-      try {
-        rec = new SR(); rec.lang = "en-US"; rec.interimResults = true; rec.continuous = true;
-        const base = say.value ? say.value + " " : "";
-        rec.onresult = (e) => { let t = ""; for (let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript; say.value = base + t; say.dispatchEvent(new Event("input")); };
-        rec.onerror = (e) => { stopMic(); if (e.error === "not-allowed" || e.error === "service-not-allowed") { mic.hidden = true; SR = null; toast("Voice input isn't available here. Type instead."); } };
-        rec.onend = () => { rec = null; mic.classList.remove("on"); };
-        rec.start(); mic.classList.add("on");
-      } catch { mic.hidden = true; SR = null; toast("Voice input isn't available here. Type instead."); }
-    };
-  }
-}
-
-/* ---------- Drafts ---------- */
-const STYLE_NAME = { story: "Story", contrarian: "Contrarian", lessons: "Lessons" };
-let generating = new Set();
-
-async function generate(ev) {
-  if (generating.has(ev.id)) return;
-  generating.add(ev.id); render();
+  S.source = { kind: "audio", name: f.name, text: "", words: 0, duration: 0, peaks: null, pending: true };
+  S.out = null; render();
+  // waveform + duration (local, no upload)
   try {
-    const out = await ask(draftPrompt(ev), { json: true, fresh: true });
-    const list = (out && Array.isArray(out.drafts) ? out.drafts : []).filter(d => d && d.text).slice(0, 3)
-      .map(d => ({ style: String(d.style || "draft"), why: String(d.why || ""), text: String(d.text).trim(), vote: 0 }));
-    if (!list.length) throw { code: "invalid_json" };
-    ev.drafts = list; ev.error = ""; save();
-  } catch (e) {
-    ev.error = errCopy(e);
-  } finally {
-    generating.delete(ev.id); if (openDraftsFor === ev) render(); else tally();
+    const buf = await f.arrayBuffer();
+    const AC = window.AudioContext || window.webkitAudioContext;
+    const ctx = new AC();
+    const audio = await ctx.decodeAudioData(buf.slice(0));
+    const ch = audio.getChannelData(0), n = 120, step = Math.floor(ch.length / n), peaks = [];
+    for (let i = 0; i < n; i++) { let m = 0; for (let j = i * step; j < (i + 1) * step; j += 32) m = Math.max(m, Math.abs(ch[j] || 0)); peaks.push(m); }
+    const max = Math.max(...peaks, .01);
+    S.source.peaks = peaks.map(p => p / max); S.source.duration = audio.duration;
+    try { ctx.close(); } catch {}
+  } catch {}
+  // transcription
+  if (inArtifact()) {
+    S.source.pending = false;
+    S.source.note = "Audio is transcribed on the hosted version of Debrief. In this preview, upload the transcript (.txt, .srt, .vtt) or paste it.";
+    render(); return;
   }
+  render();
+  try {
+    const r = await fetch("/api/transcribe", { method: "POST", headers: { "Content-Type": f.type || "application/octet-stream", "X-Filename": encodeURIComponent(f.name) }, body: f });
+    if (!r.ok) throw new Error(r.status === 413 ? "That audio file is too large. Keep it under 4 MB, or upload the transcript." : "Couldn't transcribe that file. Try again, or upload the transcript.");
+    const { text } = await r.json();
+    S.source.text = text || ""; S.source.words = words(S.source.text); S.source.pending = false;
+    if (!S.source.text) S.source.note = "No speech found in that file.";
+  } catch (e) { S.source.pending = false; S.source.note = e.message; }
+  save(); render();
 }
 
-function hookOf(text) {
-  const lines = text.split("\n").filter(l => l.trim());
-  let s = lines.slice(0, 2).join(" ");
-  return s.length > 210 ? s.slice(0, 210) + "…" : s;
+/* ---------------- render ---------------- */
+const ready = () => !!(S.source && S.source.text && S.takeaway.trim());
+const toast = (m) => { const r = $("#toast-root"); r.innerHTML = `<div class="toast">${esc(m)}</div>`; clearTimeout(toast.t); toast.t = setTimeout(() => r.innerHTML = "", 2400); };
+
+function ring(v, max, label, unit, soft) {
+  const r = 58, c = 2 * Math.PI * r, f = Math.max(0, Math.min(1, max ? v / max : 0));
+  return `<div class="ring"><svg viewBox="0 0 132 132" aria-hidden="true"><circle class="track" cx="66" cy="66" r="${r}" fill="none" stroke-width="5"/><circle class="val ${soft ? "soft" : ""}" cx="66" cy="66" r="${r}" fill="none" stroke-width="5" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${c * (1 - f)}"/></svg>
+    <div class="center"><b>${esc(label)}</b><span>${esc(unit)}</span></div></div>`;
 }
 
-function draftsView(ev) {
-  let h = `<section class="view">
-    <div class="row"><button class="btn small ghost" id="back">← Back</button></div>
-    <div class="drafts-head">
-      <div class="label">${esc(ev.name)}${ev.example ? ' <span class="ex">example</span>' : ""} · your takeaway</div>
-      <p class="takeaway-quote">“${esc(ev.takeaway)}”</p>
-    </div>`;
-  if (ev.status === "posted") h += `<div class="posted-banner">Posted. That's ${S.events.filter(e => e.status === "posted").length} so far.</div>`;
-  if (generating.has(ev.id)) {
-    h += `<div class="card" aria-live="polite"><div class="label">Writing 3 drafts</div><p class="intro">Story, contrarian and lessons versions, each built around your takeaway. Usually 20 to 40 seconds.</p></div>`;
-  } else if (ev.error && !ev.drafts.length) {
-    h += `<div class="card"><p class="intro">${esc(ev.error)}</p><div class="row"><button class="btn primary" id="retry">Write drafts</button></div></div>`;
-  } else if (!ev.drafts.length) {
-    h += `<div class="card"><p class="intro">Ready when you are.</p><div class="row"><button class="btn primary" id="retry">Write drafts</button></div></div>`;
+function sourceBlock() {
+  const s = S.source;
+  if (pasting) {
+    return `<label class="sr" for="paste">Paste transcript</label><textarea class="paste" id="paste" placeholder="Paste the transcript here">${esc(s && s.kind === "text" && s.name === "Pasted transcript" ? s.text : "")}</textarea>
+      <div class="sec"><button class="btn" id="paste-ok" type="button">Use this text</button><button class="btn" id="paste-x" type="button">Cancel</button></div>`;
   }
-  ev.drafts.forEach((d, i) => {
-    const n = d.text.length;
-    h += `<article class="draft" data-i="${i}">
-      <header><div><h3>${esc(STYLE_NAME[d.style] || d.style)}${ev.postedIdx === i ? ' <span class="pill done">Posted</span>' : ""}</h3><div class="why">${esc(d.why)}</div></div>
-        <div class="row"><button class="btn small ghost" data-vote="1" aria-pressed="${d.vote === 1}" aria-label="Good draft">${d.vote === 1 ? "▲" : "△"}</button><button class="btn small ghost" data-vote="-1" aria-pressed="${d.vote === -1}" aria-label="Weak draft">${d.vote === -1 ? "▼" : "▽"}</button></div></header>
-      <div class="preview-line"><b>Before “see more”:</b> ${esc(hookOf(d.text))}</div>
-      <div class="refine">
-        <button class="chip" data-refine="Make it about 30% shorter.">Shorter</button>
-        <button class="chip" data-refine="Make it more personal: more 'I', more of the writer's own reaction, less summary of what speakers said.">More personal</button>
-        <button class="chip" data-refine="Make it more casual and less polished, like a quick post written on the train home.">More casual</button>
-        <button class="chip" data-refine="Write a sharper, more surprising first two lines; keep the rest.">Sharper hook</button>
+  if (!s) {
+    return `<div class="drop" id="drop"><div>
+      <div class="big">Drop a recording or its transcript here</div>
+      <div class="small">Audio (.m4a, .mp3, .wav) or text (.txt, .srt, .vtt)</div>
+      <div class="row"><button class="btn" id="browse" type="button">Choose file</button><button class="btn" id="paste-btn" type="button">Paste text</button></div>
+    </div></div>`;
+  }
+  let h = `<div class="loaded">`;
+  if (s.kind === "audio") h += `<canvas class="wave" id="wave" aria-label="Waveform of ${esc(s.name)}"></canvas>`;
+  if (s.pending) h += `<div class="note">Transcribing… this takes about a quarter of the recording's length.</div>`;
+  if (s.text) h += `<div class="excerpt">${esc(s.text.slice(0, 900))}</div>`;
+  if (s.note) h += `<div class="note">${esc(s.note)}</div><div class="sec"><button class="btn" id="browse" type="button">Upload transcript</button><button class="btn" id="paste-btn" type="button">Paste text</button></div>`;
+  else h += `<div class="sec"><button class="btn" id="browse" type="button">Replace file</button></div>`;
+  return h + `</div>`;
+}
+
+function composeView() {
+  const s = S.source;
+  const tag = s ? s.name : "no file yet";
+  const meta = s ? (s.kind === "audio" ? `${fmtDur(s.duration)}${s.words ? " · " + s.words.toLocaleString() + " words" : ""}` : `${s.words.toLocaleString()} words`) : "—";
+  const n = S.takeaway.length;
+  return `
+  <section class="stage" aria-label="Your recording">
+    <div class="stage-top">
+      <div><h1>Spread the word.</h1><p class="sub">Insert an audio you want to spread to the world.</p></div>
+      <div class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span>${esc(tag)}</span></div>
+    </div>
+    ${sourceBlock()}
+    <div class="inset">
+      <div class="inset-head"><label class="cap" for="line">The one line that stayed with you</label><span class="note num">${n}/140</span></div>
+      <textarea class="oneliner" id="line" rows="1" maxlength="140" placeholder="Write the line you'd repeat to a friend.">${esc(S.takeaway)}</textarea>
+    </div>
+  </section>
+  <aside class="col">
+    <div class="card tint">
+      <div class="status"><div><h3>${s && s.text ? "Recording loaded" : "Waiting for a recording"}</h3><p class="lead">${s && s.text ? esc(meta) : "Nothing leaves your browser until you write"}</p></div><div class="status-dot ${s && s.pending ? "live" : ""}" aria-hidden="true"></div></div>
+    </div>
+    ${guideOpen ? guideCard() : ""}
+    <fieldset class="card" style="margin:0">
+      <legend class="sr">Who you are writing as</legend>
+      <div class="cap">Writing as</div>
+      <div class="roles">${Object.entries(ROLES).map(([k, r]) => `<label class="role"><input type="radio" name="role" value="${k}" ${S.role === k ? "checked" : ""}><span><span class="t">${r.t}</span><br><span class="h">${r.h}</span></span></label>`).join("")}</div>
+    </fieldset>
+    <div class="card">
+      <div class="meta"><span>Output: X thread + LinkedIn post</span><span class="num">${[!!(s && s.text), !!S.takeaway.trim(), true].filter(Boolean).length}/3 ready</span></div>
+      ${error ? `<div class="err">${esc(error)}</div>` : ""}
+      <button class="go" id="go" type="button" ${ready() && !busy ? "" : "disabled"}>${busy ? "writing…" : "write posts."}</button>
+    </div>
+  </aside>`;
+}
+
+function guideCard() {
+  const s = S.source;
+  return `<div class="card guide"><div class="cap">How it works</div>
+    <ol class="steps">
+      <li class="${s && s.text ? "done" : ""}"><b>01</b><span>Upload a recording of a talk, panel or meeting, or its transcript.</span></li>
+      <li class="done"><b>02</b><span>Pick who you're writing as. It changes the angle, not the facts.</span></li>
+      <li class="${S.takeaway.trim() ? "done" : ""}"><b>03</b><span>Write the one line that stayed with you. Everything is built around it.</span></li>
+      <li><b>04</b><span>Get an X thread and a LinkedIn post. Edit, copy, post.</span></li>
+    </ol></div>`;
+}
+
+function hook(t) { const ls = t.split("\n").filter(l => l.trim()); const s = ls.slice(0, 2).join(" "); return s; }
+
+function resultView() {
+  const o = S.out, isX = S.tab === "x";
+  const xs = o ? o.x : [];
+  const longest = xs.reduce((m, p) => Math.max(m, p.length), 0);
+  const li = o ? o.linkedin : "";
+  const hk = hook(li).length;
+  let body;
+  if (busy && !o) body = `<div class="writing"><div class="big">Writing your posts…</div><div>Reading the transcript and building around your line. Usually 20 to 40 seconds.</div></div>`;
+  else if (!o) body = `<div class="err">${esc(error || "Nothing written yet.")}</div>`;
+  else if (isX) body = `<div class="thread">${xs.map((p, i) => `<div class="post"><label class="sr" for="x-${i}">Post ${i + 1}</label><textarea id="x-${i}" data-x="${i}" rows="4">${esc(p)}</textarea><div class="foot"><span>${i === 0 ? "Opening post" : "Post " + (i + 1)}</span><span class="num ${p.length > 280 ? "over" : ""}" data-xc="${i}">${p.length}/280</span></div></div>`).join("")}</div>`;
+  else body = `<div class="post li"><div class="hookline"><b>Before “see more”:</b> <span id="hk">${esc(hook(li).slice(0, 210))}${hook(li).length > 210 ? "…" : ""}</span></div><label class="sr" for="li">LinkedIn post</label><textarea id="li">${esc(li)}</textarea><div class="foot"><span>LinkedIn</span><span class="num" id="lic">${li.length}/3000</span></div></div>`;
+
+  return `
+  <section class="stage" aria-label="Your posts">
+    <div class="stage-top">
+      <div role="tablist" class="tabs" aria-label="Platform">
+        <button role="tab" id="tab-x" aria-selected="${isX}" data-tab="x">X</button>
+        <button role="tab" id="tab-li" aria-selected="${!isX}" data-tab="li">LinkedIn</button>
       </div>
-      <label class="sr" for="d-${ev.id}-${i}">Draft text</label>
-      <textarea id="d-${ev.id}-${i}" spellcheck="true">${esc(d.text)}</textarea>
-      <footer><span class="count mono ${n > 3000 ? "over" : ""}">${n} / 3000</span>
-        <div class="row">
-          <button class="btn small" data-copy>Copy</button>
-          <a class="btn small primary" data-li href="https://www.linkedin.com/feed/?shareActive=true" target="_blank" rel="noopener">Copy &amp; open LinkedIn</a>
-          ${ev.postedIdx === i ? "" : `<button class="btn small" data-posted>I posted this</button>`}
-        </div>
-      </footer>
-    </article>`;
-  });
-  if (ev.drafts.length && !generating.has(ev.id)) h += `<div class="row"><button class="btn ghost" id="retry">Write 3 new drafts</button><button class="btn ghost" id="redo">Change takeaway</button></div>`;
-  return h + `</section>`;
+      <div class="tag"><span>${esc(ROLES[S.role].t)}</span></div>
+    </div>
+    ${body}
+    <div class="inset"><div class="cap">Your line</div><p class="oneliner" style="min-height:0">“${esc(S.takeaway)}”</p></div>
+  </section>
+  <aside class="col">
+    <div class="card tint"><div class="status"><div><h3>${busy ? "Writing" : o ? "Drafts ready" : "Not written"}</h3><p class="lead">${esc(S.source ? S.source.name : "")}</p></div><div class="status-dot ${busy ? "live" : ""}" aria-hidden="true"></div></div></div>
+    <div class="gauges">
+      ${isX
+        ? `<div class="gauge"><div class="cap">Posts</div>${ring(xs.length, 5, String(xs.length), "in thread")}</div>
+           <div class="gauge"><div class="cap">Longest</div>${ring(longest, 280, String(longest), "of 280", true)}</div>`
+        : `<div class="gauge"><div class="cap">Hook</div>${ring(hk, 210, String(hk), "of 210", false)}</div>
+           <div class="gauge"><div class="cap">Length</div>${ring(li.length, 3000, li.length.toLocaleString(), "chars", true)}</div>`}
+    </div>
+    <div class="card">
+      <div class="cap">Adjust ${isX ? "the thread" : "the post"}</div>
+      <div class="chips">
+        ${[["Shorter", "Make it about 30% shorter."], ["Sharper opening", "Make the opening more concrete and surprising."], ["More personal", "More first-person reaction, less summary of what was said."], ["More casual", "More casual, like a quick note written on the way home."]].map(([l, h]) => `<button class="chip" data-refine="${esc(h)}" type="button" ${o && !refining && !busy ? "" : "disabled"}>${l}</button>`).join("")}
+      </div>
+    </div>
+    <div class="card">
+      <div class="meta"><span>${isX ? "Copies the whole thread" : "Copies the full post"}</span><span class="num">${isX ? xs.length + " posts" : li.length + " chars"}</span></div>
+      <a class="go" id="open" href="${isX ? "https://x.com/intent/post?text=" + encodeURIComponent(xs[0] || "") : "https://www.linkedin.com/feed/?shareActive=true"}" target="_blank" rel="noopener" ${o ? "" : 'aria-disabled="true" style="opacity:.35;pointer-events:none"'}>copy &amp; open ${isX ? "X" : "LinkedIn"}.</a>
+      <div class="sec"><button class="btn" id="copy" type="button" ${o ? "" : "disabled"}>Copy only</button><button class="btn" id="again" type="button" ${busy ? "disabled" : ""}>Write again</button><button class="btn" id="edit" type="button">Change the line</button></div>
+    </div>
+  </aside>`;
 }
 
-function bindDrafts(ev) {
-  $("#back").onclick = () => { openDraftsFor = null; render(); };
-  $("#retry")?.addEventListener("click", () => generate(ev));
-  $("#redo")?.addEventListener("click", () => { ev.status = "upcoming"; save(); openDraftsFor = null; openDebrief(ev); });
-  document.querySelectorAll(".draft").forEach(card => {
-    const i = Number(card.dataset.i), d = ev.drafts[i], ta = card.querySelector("textarea"), cnt = card.querySelector(".count");
-    ta.addEventListener("input", () => { d.text = ta.value; cnt.textContent = ta.value.length + " / 3000"; cnt.classList.toggle("over", ta.value.length > 3000); save(); });
-    card.querySelector("[data-copy]").onclick = async () => { if (await copyText(d.text)) toast("Copied"); else { ta.select(); toast("Selected. Press Ctrl/⌘+C to copy"); } };
-    card.querySelector("[data-li]").addEventListener("click", async () => { const ok = await copyText(d.text); toast(ok ? "Copied. Paste it into the LinkedIn post box" : "Copy the text first, then paste it in LinkedIn"); });
-    card.querySelector("[data-posted]")?.addEventListener("click", () => { ev.status = "posted"; ev.postedIdx = i; ev.postedAt = now(); save(); render(); toast("Nice. Marked as posted"); });
-    card.querySelectorAll("[data-vote]").forEach(b => b.onclick = () => { const v = Number(b.dataset.vote); d.vote = d.vote === v ? 0 : v; save(); render(); });
-    card.querySelectorAll("[data-refine]").forEach(b => b.onclick = async () => {
-      const all = card.querySelectorAll("button, textarea"); all.forEach(x => x.disabled = true);
-      const label = b.textContent; b.textContent = "Rewriting…";
-      try {
-        const t = await ask(refinePrompt(ev, d.text, b.dataset.refine), { fresh: true });
-        d.text = String(t).trim().replace(/^"""|"""$/g, "").trim(); save(); render();
-      } catch (e) { b.textContent = label; all.forEach(x => x.disabled = false); toast(errCopy(e)); }
+let mode = S.out ? "result" : "compose";
+function render() {
+  const main = $("#main");
+  const focusId = document.activeElement && document.activeElement.id;
+  main.innerHTML = mode === "result" ? resultView() : composeView();
+  bind();
+  if (focusId && $("#" + focusId)) { const el = $("#" + focusId); el.focus(); if (el.setSelectionRange && el.value) el.setSelectionRange(el.value.length, el.value.length); }
+  drawWave();
+}
+
+function drawWave() {
+  const c = $("#wave"); const s = S.source;
+  if (!c || !s || !s.peaks) return;
+  const dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+  c.width = w * dpr; c.height = h * dpr;
+  const g = c.getContext("2d"); g.scale(dpr, dpr);
+  const ink = getComputedStyle(document.documentElement).getPropertyValue("--ink").trim() || "#111";
+  const n = s.peaks.length, gap = 3, bw = Math.max(2, (w - gap * (n - 1)) / n);
+  g.fillStyle = ink;
+  s.peaks.forEach((p, i) => { const bh = Math.max(3, p * h * .9); const x = i * (bw + gap); g.globalAlpha = .25 + p * .75; g.beginPath(); g.roundRect ? g.roundRect(x, (h - bh) / 2, bw, bh, bw / 2) : g.rect(x, (h - bh) / 2, bw, bh); g.fill(); });
+}
+
+function bind() {
+  // compose
+  $("#browse")?.addEventListener("click", () => $("#file").click());
+  $("#paste-btn")?.addEventListener("click", () => { pasting = true; render(); $("#paste")?.focus(); });
+  $("#paste-x")?.addEventListener("click", () => { pasting = false; render(); });
+  $("#paste-ok")?.addEventListener("click", () => {
+    const t = $("#paste").value.trim(); if (!t) { toast("Paste some text first"); return; }
+    S.source = { kind: "text", name: "Pasted transcript", text: t, words: words(t) }; pasting = false; S.out = null; save(); render();
+  });
+  const drop = $("#drop");
+  if (drop) {
+    ["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+    ["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
+    drop.addEventListener("drop", e => takeFile(e.dataTransfer.files[0]));
+  }
+  const line = $("#line");
+  if (line) {
+    const fit = () => { line.style.height = "auto"; line.style.height = line.scrollHeight + "px"; };
+    fit();
+    line.addEventListener("input", () => {
+      S.takeaway = line.value; save(); fit();
+      const cnt = line.closest(".inset").querySelector(".note"); cnt.textContent = line.value.length + "/140";
+      $("#go").disabled = !ready() || busy;
+      const r = document.querySelector(".meta .num"); if (r) r.textContent = [!!(S.source && S.source.text), !!S.takeaway.trim(), true].filter(Boolean).length + "/3 ready";
     });
+    line.addEventListener("keydown", e => { if (e.key === "Enter" && !e.isComposing) { e.preventDefault(); if (ready()) write(); } });
+  }
+  document.querySelectorAll('input[name="role"]').forEach(r => r.addEventListener("change", () => { S.role = r.value; save(); }));
+  $("#go")?.addEventListener("click", write);
+
+  // result
+  document.querySelectorAll("[data-tab]").forEach(b => b.addEventListener("click", () => { S.tab = b.dataset.tab; save(); render(); }));
+  const tl = $(".tabs");
+  tl?.addEventListener("keydown", e => { if (e.key === "ArrowLeft" || e.key === "ArrowRight") { S.tab = S.tab === "x" ? "li" : "x"; save(); render(); $(S.tab === "x" ? "#tab-x" : "#tab-li").focus(); } });
+  document.querySelectorAll("[data-x]").forEach(ta => ta.addEventListener("input", () => {
+    const i = +ta.dataset.x; S.out.x[i] = ta.value; save();
+    const c = document.querySelector(`[data-xc="${i}"]`); c.textContent = ta.value.length + "/280"; c.classList.toggle("over", ta.value.length > 280);
+    if (i === 0) $("#open").href = "https://x.com/intent/post?text=" + encodeURIComponent(ta.value);
+  }));
+  $("#li")?.addEventListener("input", (e) => {
+    S.out.linkedin = e.target.value; save();
+    $("#lic").textContent = e.target.value.length + "/3000";
+    const h = hook(e.target.value); $("#hk").textContent = h.slice(0, 210) + (h.length > 210 ? "…" : "");
   });
+  const text = () => S.tab === "x" ? S.out.x.join("\n\n") : S.out.linkedin;
+  $("#copy")?.addEventListener("click", async () => { try { await navigator.clipboard.writeText(text()); toast("Copied"); } catch { toast("Couldn't copy. Select the text and copy it yourself."); } });
+  $("#open")?.addEventListener("click", async () => {
+    let ok = false; try { await navigator.clipboard.writeText(text()); ok = true; } catch {}
+    toast(S.tab === "x" ? (ok ? "Thread copied. Post 1 is filled in on X." : "Post 1 is filled in on X.") : (ok ? "Copied. Paste it into the LinkedIn post box." : "Copy the post, then paste it on LinkedIn."));
+  });
+  $("#again")?.addEventListener("click", write);
+  $("#edit")?.addEventListener("click", () => { mode = "compose"; render(); $("#line")?.focus(); });
+  document.querySelectorAll("[data-refine]").forEach(b => b.addEventListener("click", async () => {
+    refining = true; const label = b.textContent; render();
+    const btn = [...document.querySelectorAll("[data-refine]")].find(x => x.textContent === label); if (btn) btn.textContent = "Rewriting…";
+    try {
+      const r = await ask(refinePrompt(b.dataset.refine), { json: true });
+      if (S.tab === "x" && Array.isArray(r && r.x) && r.x.length) S.out.x = r.x.map(String);
+      else if (S.tab === "li" && r && r.linkedin) S.out.linkedin = String(r.linkedin).trim();
+      else throw { code: "invalid_json" };
+      save(); toast("Updated");
+    } catch (e) { toast(errCopy(e)); }
+    refining = false; render();
+  }));
 }
 
-/* ---------- boot ---------- */
+async function write() {
+  if (!ready() || busy) return;
+  busy = true; error = ""; mode = "result"; S.out = null; render();
+  try {
+    const r = await ask(mainPrompt(), { json: true });
+    const x = (r && Array.isArray(r.x) ? r.x : []).map(String).map(s => s.trim()).filter(Boolean).slice(0, 6);
+    const li = r && r.linkedin ? String(r.linkedin).trim() : "";
+    if (!x.length || !li) throw { code: "invalid_json" };
+    S.out = { x, linkedin: li }; save();
+  } catch (e) { error = errCopy(e); mode = "compose"; }
+  busy = false; render();
+}
+
+/* ---------------- header ---------------- */
+$("#file").addEventListener("change", e => { pasting = false; takeFile(e.target.files[0]); e.target.value = ""; });
+$("#how").addEventListener("click", () => { guideOpen = !guideOpen; $("#how").setAttribute("aria-expanded", String(guideOpen)); if (mode !== "compose") mode = "compose"; render(); });
+$("#restart").addEventListener("click", () => { const role = S.role; S = blank(); S.role = role; mode = "compose"; error = ""; pasting = false; save(); render(); });
+function tick() { const d = new Date(); let h = d.getHours(); const ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12; $("#clock").innerHTML = `${String(h).padStart(2, "0")}.${String(d.getMinutes()).padStart(2, "0")}<small>${ap}</small>`; }
+tick(); setInterval(tick, 15000);
+window.addEventListener("resize", drawWave);
+window.matchMedia && matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", drawWave);
+
+// First visit: open the guide so the page explains itself
+if (!S.source && !S.out) guideOpen = true;
+$("#how").setAttribute("aria-expanded", String(guideOpen));
 render();
-setInterval(() => { if (!openDraftsFor && !$("#sheet-root").innerHTML) tally(); }, 60000);
 getSample();
 })();
 </script>
