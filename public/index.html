@@ -6,7 +6,7 @@
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 </head>
 <body>
-<title>takeaway.human</title>
+<title>Human Takeaway</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -55,7 +55,6 @@ button { cursor: pointer; }
 .brand { display: flex; align-items: center; gap: 8px; font-size: 22px; font-weight: 500; letter-spacing: -.02em; }
 .brand i { width: 22px; height: 22px; border-radius: 50%; background: var(--ink); position: relative; display: inline-block; }
 .brand i::after { content: ""; position: absolute; right: -3px; top: 6px; width: 10px; height: 10px; border-radius: 50%; background: var(--sheet); border: 2px solid var(--panel-2); }
-.brand .tld { color: var(--muted); font-weight: 400; }
 .bar-r { display: flex; gap: 10px; flex-wrap: wrap; }
 .pill { border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 9px 20px; color: var(--muted); font-size: 15px; display: inline-flex; align-items: center; gap: 8px; }
 .pill:hover { color: var(--ink); }
@@ -219,7 +218,7 @@ button { cursor: pointer; }
     <header class="bar">
       <div class="bar-l">
         <div class="clock" id="clock" aria-hidden="true"></div>
-        <div class="brand"><i aria-hidden="true"></i>takeaway<span class="tld">.human</span></div>
+        <div class="brand"><i aria-hidden="true"></i>Human Takeaway</div>
       </div>
       <div class="bar-r">
         <button class="pill" id="lib" type="button">my lines <span class="num" id="lib-n"></span></button>
@@ -393,7 +392,7 @@ async function takeFile(f) {
   // transcription
   if (inArtifact()) {
     S.source.pending = false;
-    S.source.note = "Audio is transcribed on the hosted version of takeaway.human. In this preview, upload the transcript (.txt, .srt, .vtt) or paste it.";
+    S.source.note = "Audio is transcribed on the hosted version of Human Takeaway. In this preview, upload the transcript (.txt, .srt, .vtt) or paste it.";
     render(); return;
   }
   render();

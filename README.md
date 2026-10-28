@@ -1,4 +1,4 @@
-# takeaway.human
+# Human Takeaway
 
 녹음(또는 녹취록)과 **나에게 남은 한 줄**만 있으면 X 스레드와 LinkedIn 포스트를 만들어 주는 데모.
 
