@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<script src="config.js"></script>
 </head>
 <body>
 <title>Human Takeaway</title>
@@ -234,6 +235,7 @@ button { cursor: pointer; }
         <button class="pill" id="lib" type="button">my lines <span class="num" id="lib-n"></span></button>
         <button class="pill" id="how" type="button" aria-expanded="false">how it works <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3 4.5 6 7.5 9 4.5"/></svg></button>
         <button class="pill" id="restart" type="button">new upload</button>
+        <button class="pill" id="acct" type="button" hidden>sign in</button>
       </div>
     </header>
     <main class="grid" id="main"></main>
@@ -585,6 +587,93 @@ async function takeFile(f) {
   save(); render();
 }
 
+/* ---------------- account + storage ----------------
+   artifact: claude.ai viewer account, rows in the artifact's private per-user db
+   supabase: own site, Google sign-in, rows in the `lines` table (see supabase/schema.sql)
+   local:    signed out or not configured, this browser only */
+const Store = { kind: "local", uid: null, db: null, sb: null, email: "", configured: false };
+const toRow = (x) => ({ id: x.id, line: x.line, event: x.event || "", industries: x.industries || [], functions: x.functions || [], role: x.role || "job", sourceName: x.sourceName || "", at: x.at, out: x.out || null, visibility: x.visibility || "private" });
+const newId = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+
+const remote = {
+  async list() {
+    if (Store.kind === "artifact") {
+      const snap = await Store.db.collection("data/users/" + Store.uid).get();
+      return snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => b.at - a.at);
+    }
+    if (Store.kind === "supabase") {
+      const { data, error } = await Store.sb.from("lines").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      return data.map(r => ({ id: r.id, line: r.line, event: r.event_title || "", industries: r.industries || [], functions: r.functions || [], role: r.role, sourceName: r.source_name || "", at: new Date(r.created_at).getTime(), out: r.posts, visibility: r.visibility }));
+    }
+    return null;
+  },
+  async add(x) {
+    const r = toRow(x);
+    if (Store.kind === "artifact") { const { id, ...rest } = r; await Store.db.collection("data/users/" + Store.uid).doc(id).set(rest); }
+    if (Store.kind === "supabase") {
+      const { error } = await Store.sb.from("lines").insert({ id: r.id, line: r.line, event_title: r.event, industries: r.industries, functions: r.functions, role: r.role, source_name: r.sourceName, created_at: new Date(r.at).toISOString(), posts: r.out, visibility: r.visibility });
+      if (error) throw error;
+    }
+  },
+  async update(id, patch) {
+    if (Store.kind === "artifact") await Store.db.collection("data/users/" + Store.uid).doc(id).update(patch);
+    if (Store.kind === "supabase") { const { error } = await Store.sb.from("lines").update(patch).eq("id", id); if (error) throw error; }
+  },
+  async remove(id) {
+    if (Store.kind === "artifact") await Store.db.collection("data/users/" + Store.uid).doc(id).delete();
+    if (Store.kind === "supabase") { const { error } = await Store.sb.from("lines").delete().eq("id", id); if (error) throw error; }
+  }
+};
+const synced = () => Store.kind !== "local";
+function persist(promise, failMsg) { if (!synced()) return; promise.catch(() => toast(failMsg || "Couldn't save to your account. Check your connection.")); }
+
+function loadScript(src) { return new Promise((ok, no) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = no; document.head.appendChild(s); }); }
+
+async function connectAccount() {
+  if (inArtifact()) {
+    const [db, user] = await Promise.all([window.claude.use("db").catch(() => null), window.claude.use("user").catch(() => null)]);
+    const uid = user ? await user.id() : null;
+    if (db && uid) { Store.db = db; Store.uid = uid; Store.kind = "artifact"; }
+  } else {
+    const cfg = window.HT_CONFIG || {};
+    if (cfg.supabaseUrl && cfg.supabaseAnonKey) {
+      Store.configured = true;
+      try {
+        await loadScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js");
+        Store.sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
+        const { data } = await Store.sb.auth.getSession();
+        if (data.session) { Store.kind = "supabase"; Store.uid = data.session.user.id; Store.email = data.session.user.email || ""; }
+        Store.sb.auth.onAuthStateChange((ev) => { if (ev === "SIGNED_IN" && Store.kind !== "supabase") location.reload(); if (ev === "SIGNED_OUT") location.reload(); });
+      } catch { Store.configured = false; }
+    }
+  }
+  accountUI();
+  if (!synced()) return;
+  try {
+    const rows = await remote.list();
+    // move lines written in this browser before signing in
+    const local = (S.lib || []).filter(x => !x.example && !rows.some(r => r.id === x.id));
+    for (const x of local) await remote.add(x);
+    S.lib = [...local, ...rows].sort((a, b) => b.at - a.at);
+    if (!S.lib.length && !rows.length) S.lib = [];
+    save(); render();
+    if (local.length) toast(`Moved ${local.length} ${local.length === 1 ? "line" : "lines"} from this browser to your account`);
+  } catch { toast("Couldn't load your lines from your account."); }
+}
+
+function accountUI() {
+  const b = $("#acct");
+  if (Store.kind === "supabase") { b.hidden = false; b.textContent = "sign out"; b.title = Store.email; }
+  else if (Store.configured) { b.hidden = false; b.textContent = "sign in"; b.title = "Sign in with Google to keep your lines"; }
+  else b.hidden = true;
+}
+async function onAccountClick() {
+  if (!Store.sb) return;
+  if (Store.kind === "supabase") { await Store.sb.auth.signOut(); return; }
+  await Store.sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin + location.pathname } });
+}
+
 /* ---------------- render ---------------- */
 const ready = () => !!(S.source && S.source.text && S.takeaway.trim());
 const toast = (m) => { const r = $("#toast-root"); r.innerHTML = `<div class="toast">${esc(m)}</div>`; clearTimeout(toast.t); toast.t = setTimeout(() => r.innerHTML = "", 2400); };
@@ -752,13 +841,13 @@ function libraryView() {
       : `<div class="lines">${shown.map(x => `<article class="ln">
           <q>${esc(x.line)}</q>
           <div class="m"><span>${esc(fmtDate(x.at))}</span>${x.event ? `<span>${esc(x.event)}</span>` : ""}${[...(x.industries || []), ...(x.functions || [])].map(t => `<span class="t">${esc(t)}</span>`).join("")}${x.example ? '<span class="ex">example</span>' : ""}</div>
-          <div class="sec">${x.out ? `<button class="linkish" data-open="${x.id}" type="button">Open posts</button>` : ""}<button class="linkish" data-del="${x.id}" type="button">Delete</button></div>
+          <div class="sec">${x.out ? `<button class="linkish" data-open="${x.id}" type="button">Open posts</button>` : ""}${x.example ? "" : `<button class="linkish" data-vis="${x.id}" type="button" aria-pressed="${x.visibility === "public"}" title="${x.visibility === "public" ? "Public: anyone can see this line" : "Private: only you can see this line"}">${x.visibility === "public" ? "Public" : "Private"}</button>`}<button class="linkish" data-del="${x.id}" type="button">Delete</button></div>
         </article>`).join("")}</div>`;
 
   return `
   <section class="stage" aria-label="Your lines">
     <div class="stage-top">
-      <div><h1>What stayed with you.</h1><p class="sub">${all.length ? `${all.length} ${all.length === 1 ? "line" : "lines"}, written in your own words${label ? `. Showing ${esc(label)}.` : "."}` : "Your lines collect here."}</p></div>
+      <div><h1>What stayed with you.</h1><p class="sub">${all.length ? `${all.length} ${all.length === 1 ? "line" : "lines"}, written in your own words${label ? `. Showing ${esc(label)}.` : "."}` : "Your lines collect here."}</p><p class="hint" style="margin-top:10px">${synced() ? "Saved to your account." : Store.configured ? "Saved in this browser only. Sign in to keep them across devices." : "Saved in this browser only."}</p></div>
     </div>
     ${list}
   </section>
@@ -896,9 +985,17 @@ function bind() {
     S.source = { kind: "text", name: it.sourceName || "Saved line", text: "", words: 0 };
     S.out = JSON.parse(JSON.stringify(it.out)); S.tab = "x"; mode = "result"; save(); render(); window.scrollTo(0, 0);
   }));
+  document.querySelectorAll("[data-vis]").forEach(b => b.addEventListener("click", () => {
+    const it = S.lib.find(x => x.id === b.dataset.vis); if (!it) return;
+    it.visibility = it.visibility === "public" ? "private" : "public"; save(); render();
+    toast(it.visibility === "public" ? "Public" : "Private");
+    persist(remote.update(it.id, { visibility: it.visibility }));
+  }));
   document.querySelectorAll("[data-del]").forEach(b => b.addEventListener("click", () => {
     if (!b.dataset.armed) { b.dataset.armed = "1"; b.textContent = "Tap again to delete"; return; }
+    const gone = S.lib.find(x => x.id === b.dataset.del);
     S.lib = S.lib.filter(x => x.id !== b.dataset.del); save(); render(); toast("Deleted");
+    if (gone && !gone.example) persist(remote.remove(gone.id));
   }));
 
   // result
@@ -950,7 +1047,8 @@ async function write() {
     const li = rl && rl.linkedin ? String(rl.linkedin).trim() : "";
     if (!x.length || !li) throw { code: "invalid_json" };
     S.out = { x, linkedin: li };
-    S.lib.unshift({ id: Math.random().toString(36).slice(2, 10), line: S.takeaway.trim(), event: S.meta.event.trim(), industries: [...S.meta.industries], functions: [...S.meta.functions], role: S.role, sourceName: S.source.name, at: Date.now(), out: JSON.parse(JSON.stringify(S.out)) });
+    const entry = { id: newId(), line: S.takeaway.trim(), event: S.meta.event.trim(), industries: [...S.meta.industries], functions: [...S.meta.functions], role: S.role, sourceName: S.source.name, at: Date.now(), out: JSON.parse(JSON.stringify(S.out)), visibility: "private" };
+    S.lib.unshift(entry); persist(remote.add(entry));
     save();
   } catch (e) { error = errCopy(e); mode = "compose"; }
   busy = false; stage = ""; render();
@@ -971,6 +1069,8 @@ if (!S.source && !S.out) guideOpen = true;
 $("#how").setAttribute("aria-expanded", String(guideOpen));
 render();
 getSample();
+$("#acct").addEventListener("click", onAccountClick);
+connectAccount();
 })();
 </script>
 

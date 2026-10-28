@@ -21,7 +21,7 @@ Built for people in the Bay Area startup scene (job seekers, marketers, founders
    - **X**: one short post, your line polished to sound native to X (ideally under 140 characters). "Copy & open X" opens the composer with it filled in.
    - **LinkedIn**: one post with a preview of what shows before "see more" and a character count.
    - Rewrites: Shorter / Punchier / Drier / Another take on X; Shorter / Sharper opening / More personal / More casual on LinkedIn.
-7. **My lines**: every line you have written, with date, event and tags. Filter by industry or function, see where your thinking concentrates, and reopen the posts made from any line.
+7. **My lines**: every line you have written, with date, event and tags. Filter by industry or function, see where your thinking concentrates, and reopen the posts made from any line. Each line is Private by default; switch it to Public to share it (public lines will power per-event pages and the host view next).
 
 How posts are written: a planning pass first restates what your line claims and picks at most two details from the transcript that directly prove it (rejecting vivid but off-topic or contradictory ones, and anything that may be a transcription error). The writers only see that plan, not the raw transcript. Each writer drafts, checks every sentence against the thesis, and returns the edited version.
 
@@ -34,6 +34,8 @@ src/app.html         The whole app (HTML/CSS/JS in one file). Can be published a
 public/index.html    Standalone page for your own site (build.sh wraps src/app.html in a full HTML document).
 api/generate.js      Post generation via the Anthropic API (ANTHROPIC_API_KEY).
 api/transcribe.js    Speech-to-text via the OpenAI Whisper API (OPENAI_API_KEY).
+supabase/schema.sql  Database table, row-level security and the public_lines view.
+vercel.json          Build command and output folder for Vercel.
 build.sh             Builds public/index.html.
 ```
 
@@ -42,14 +44,32 @@ The app detects where it is running:
 - **Inside a claude.ai Artifact**: posts are written with the viewer's own Claude account. Audio files show a waveform and duration, but transcription is not available there, so the app asks for a transcript instead.
 - **On your own site**: it calls the `/api/generate` and `/api/transcribe` serverless functions.
 
+## Accounts and storage
+
+Lines are saved to the signed-in user's account:
+
+- **Inside a claude.ai Artifact**: the viewer's Claude account, in the artifact's private per-user storage. Nothing to set up.
+- **On your own site**: Google sign-in and a Postgres table through [Supabase](https://supabase.com). Signed-out visitors can still use the app; their lines stay in the browser and move to their account when they sign in.
+
+Supabase setup (one time):
+
+1. Create a Supabase project.
+2. In the SQL editor, run `supabase/schema.sql`.
+3. Authentication → Providers → Google: enable it and paste a Google OAuth client ID and secret (Google Cloud Console → APIs & Services → Credentials → OAuth client ID, type "Web application", authorized redirect URI `https://<your-project>.supabase.co/auth/v1/callback`).
+4. Authentication → URL Configuration: set the Site URL to your domain and add it to the redirect allow list.
+5. Copy the project URL and the anon key from Project Settings → API. The anon key is meant to be public; row-level security keeps each user's lines private.
+
 ## Deploying to your site (Vercel)
 
 ```bash
-./build.sh
 vercel                             # or import the GitHub repo in the Vercel dashboard
 vercel env add ANTHROPIC_API_KEY
+vercel env add SUPABASE_URL
+vercel env add SUPABASE_ANON_KEY
 vercel env add OPENAI_API_KEY      # only needed for audio transcription
 ```
+
+`vercel.json` runs `./build.sh`, which builds `public/index.html` and writes `public/config.js` from the two Supabase variables. Without them the app runs in browser-only mode.
 
 Optional environment variables: `ANTHROPIC_MODEL` (default `claude-sonnet-5-5`), `ANTHROPIC_MODEL_QUICK` (default `claude-haiku-5-5`), `ANTHROPIC_MODEL_COMPLEX` (default `claude-opus-5-5`, used for the final writing pass), `STT_MODEL` (default `whisper-1`).
 
@@ -60,7 +80,6 @@ Notes:
 
 ## Current limitations
 
-- Data lives only in the browser's localStorage. There is no login or sync, so clearing browser data or switching devices loses your lines.
 - Paste blocking stops paste and drag-and-drop, but not voice dictation or browser extensions.
 - No usage analytics yet.
 
