@@ -1,0 +1,734 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Debrief</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one narrow app column; a sticky top bar with the debrief counter, tabbed views below, a bottom sheet for the debrief conversation. Fog-grey ground, bridge-orange accent. */
+:root {
+  --bg: #eef0f1;
+  --surface: #ffffff;
+  --surface-2: #f6f7f8;
+  --fg: #1b2226;
+  --muted: #5d6870;
+  --line: #d8dde0;
+  --accent: #c2401f;
+  --accent-ink: #ffffff;
+  --accent-soft: #fbe7e0;
+  --ok: #2f7a4f;
+  --ok-soft: #e1f1e7;
+  --bot: #e7ebee;
+  --shadow: 0 1px 2px rgba(20,30,40,.06), 0 6px 24px rgba(20,30,40,.06);
+  --display: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121719; --surface: #1b2226; --surface-2: #20282d; --fg: #e8ecee; --muted: #98a4ab; --line: #2e383e;
+    --accent: #ef6a45; --accent-ink: #1a0f0b; --accent-soft: #3a211a; --ok: #6cc596; --ok-soft: #1c3227; --bot: #263036;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 24px rgba(0,0,0,.25); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121719; --surface: #1b2226; --surface-2: #20282d; --fg: #e8ecee; --muted: #98a4ab; --line: #2e383e;
+  --accent: #ef6a45; --accent-ink: #1a0f0b; --accent-soft: #3a211a; --ok: #6cc596; --ok-soft: #1c3227; --bot: #263036;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 24px rgba(0,0,0,.25); color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.wrap { max-width: 680px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 48px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+/* top bar */
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 18px 0; }
+.brand { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.brand h1 { font-size: 28px; font-weight: 700; }
+.brand h1 span { color: var(--accent); }
+.tally { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.tally b { color: var(--fg); font-weight: 500; }
+.tabs { display: flex; gap: 4px; margin-top: 14px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.tab { background: none; border: 0; padding: 10px 12px; color: var(--muted); font-weight: 500; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
+.tab[aria-selected="true"] { color: var(--fg); border-color: var(--accent); }
+.tab .dot { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 6px; border-radius: 9px; background: var(--accent); color: var(--accent-ink); font-size: 11px; line-height: 18px; text-align: center; font-family: var(--mono); }
+
+.view { padding-top: 20px; display: grid; gap: 14px; }
+.intro { color: var(--muted); max-width: 60ch; margin: 0; }
+
+/* nudge: the proactive ask */
+.nudge { background: var(--surface); border-radius: 14px; box-shadow: var(--shadow); padding: 18px; display: grid; gap: 12px; border: 1px solid var(--line); }
+.nudge .who { display: flex; gap: 10px; align-items: center; }
+.avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-family: var(--display); font-weight: 700; font-size: 15px; flex: none; }
+.nudge .ask { font-size: 17px; font-weight: 500; margin: 0; }
+.nudge .meta { font-size: 13px; color: var(--muted); }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 9px 14px; font-weight: 500; }
+.btn:hover { background: var(--surface-2); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.primary:hover { filter: brightness(1.05); }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--muted); }
+.btn.small { padding: 6px 10px; font-size: 13px; border-radius: 8px; }
+.btn:disabled { opacity: .5; cursor: default; }
+
+.empty { text-align: center; padding: 36px 16px; color: var(--muted); border: 1px dashed var(--line); border-radius: 14px; }
+.empty h3 { color: var(--fg); font-size: 18px; margin-bottom: 6px; }
+
+/* event list */
+.events { display: grid; gap: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.ev { display: grid; grid-template-columns: 54px 1fr auto; gap: 12px; padding: 14px; border-top: 1px solid var(--line); align-items: center; }
+.ev:first-child { border-top: 0; }
+.date { text-align: center; font-family: var(--mono); line-height: 1.1; }
+.date .m { font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: .06em; }
+.date .d { font-size: 22px; font-weight: 500; }
+.ev .t { font-weight: 600; min-width: 0; }
+.ev .s { font-size: 13px; color: var(--muted); }
+.ev > div:nth-child(2) { min-width: 0; }
+.pill { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; padding: 3px 8px; border-radius: 20px; white-space: nowrap; background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
+.pill.wait { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+.pill.done { background: var(--ok-soft); color: var(--ok); border-color: transparent; }
+.ex { font-size: 10px; font-family: var(--mono); color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; margin-left: 6px; vertical-align: 2px; }
+
+/* forms */
+form.card, .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: grid; gap: 12px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 520px) { .grid2 { grid-template-columns: 1fr; } }
+.field { display: grid; gap: 5px; min-width: 0; }
+.field label { font-size: 13px; font-weight: 500; }
+.field .hint { font-size: 12px; color: var(--muted); }
+input[type=text], input[type=url], input[type=date], input[type=time], textarea, select {
+  width: 100%; border: 1px solid var(--line); background: var(--surface-2); border-radius: 9px; padding: 9px 11px;
+}
+textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+.roles { display: flex; gap: 8px; flex-wrap: wrap; }
+.roles label { border: 1px solid var(--line); border-radius: 20px; padding: 6px 12px; font-size: 14px; cursor: pointer; background: var(--surface-2); }
+.roles input { position: absolute; opacity: 0; pointer-events: none; }
+.roles input:checked + span { color: var(--accent); font-weight: 600; }
+.roles label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.roles label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* drafts */
+.drafts-head { display: grid; gap: 4px; }
+.takeaway-quote { font-family: var(--display); font-size: 21px; font-weight: 500; line-height: 1.3; margin: 0; }
+.draft { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.draft header { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.draft header h3 { font-size: 16px; }
+.draft .why { font-size: 12px; color: var(--muted); }
+.draft textarea { border: 0; border-radius: 0; background: var(--surface); min-height: 260px; padding: 14px 16px; font-size: 15px; }
+.fold { position: relative; padding: 0 16px; }
+.fold span { display: block; border-top: 1px dashed var(--accent); font-family: var(--mono); font-size: 10px; color: var(--accent); text-align: right; padding-top: 2px; }
+.draft footer { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 16px 14px; flex-wrap: wrap; border-top: 1px solid var(--line); }
+.count { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.count.over { color: var(--accent); }
+.refine { display: flex; gap: 6px; flex-wrap: wrap; padding: 10px 16px 0; }
+.chip { border: 1px solid var(--line); background: var(--surface-2); border-radius: 16px; padding: 4px 10px; font-size: 12.5px; }
+.chip:hover { border-color: var(--accent); }
+.posted-banner { background: var(--ok-soft); color: var(--ok); border-radius: 10px; padding: 10px 14px; font-weight: 500; }
+.preview-line { font-size: 13px; color: var(--muted); padding: 10px 16px 0; }
+.preview-line b { color: var(--fg); font-weight: 600; }
+
+/* sheet / chat */
+.scrim { position: fixed; inset: 0; background: rgba(10,15,18,.45); z-index: 20; display: flex; align-items: flex-end; justify-content: center; }
+.sheet { background: var(--bg); width: 100%; max-width: 680px; max-height: 92%; border-radius: 18px 18px 0 0; display: flex; flex-direction: column; box-shadow: 0 -10px 40px rgba(0,0,0,.2); }
+.sheet-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 14px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); border-bottom: 1px solid var(--line); }
+.sheet-head h2 { font-size: 17px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat { flex: 1; overflow-y: auto; padding: 16px max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px)); display: flex; flex-direction: column; gap: 10px; }
+.msg { max-width: 85%; padding: 10px 13px; border-radius: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.msg.bot { background: var(--bot); align-self: flex-start; border-bottom-left-radius: 4px; }
+.msg.me { background: var(--accent); color: var(--accent-ink); align-self: flex-end; border-bottom-right-radius: 4px; }
+.msg.typing { color: var(--muted); font-style: italic; }
+.suggest { display: grid; gap: 6px; align-self: stretch; }
+.suggest button { text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 9px 12px; }
+.suggest button:hover { border-color: var(--accent); }
+.composer { border-top: 1px solid var(--line); padding: 10px max(16px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); display: grid; gap: 8px; }
+.composer .line { display: flex; gap: 8px; align-items: flex-end; }
+.composer textarea { min-height: 44px; max-height: 160px; flex: 1; min-width: 0; }
+.mic { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); display: grid; place-items: center; flex: none; }
+.mic.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 6px var(--accent-soft); } }
+@media (prefers-reduced-motion: reduce) { .mic.on { animation: none; } }
+.quick { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 9px 16px; border-radius: 20px; font-size: 14px; z-index: 30; max-width: calc(100% - 32px); }
+.notice { font-size: 13px; color: var(--muted); background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+</style>
+
+<div class="wrap">
+  <div class="top">
+    <div class="brand">
+      <h1>Debrief<span>.</span></h1>
+      <div class="tally" id="tally"></div>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Sections">
+      <button class="tab" role="tab" id="tab-inbox" data-view="inbox" aria-selected="true">Inbox</button>
+      <button class="tab" role="tab" id="tab-events" data-view="events" aria-selected="false">Events</button>
+      <button class="tab" role="tab" id="tab-posts" data-view="posts" aria-selected="false">Posts</button>
+      <button class="tab" role="tab" id="tab-me" data-view="me" aria-selected="false">You</button>
+    </nav>
+  </div>
+
+  <main id="main"></main>
+</div>
+
+<div id="sheet-root"></div>
+<div id="toast-root" aria-live="polite"></div>
+
+<script>
+(() => {
+"use strict";
+
+/* ---------- storage (per-browser) ---------- */
+const KEY = "debrief.v1";
+const load = () => { try { return JSON.parse(localStorage.getItem(KEY) || "null"); } catch { return null; } };
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {} };
+
+const uid = () => Math.random().toString(36).slice(2, 10);
+const now = () => Date.now();
+const H = 3600e3;
+const ymd = (t) => { const d = new Date(t); return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); };
+const hm = (t) => { const d = new Date(t); return String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0"); };
+
+function seed() {
+  const t = now();
+  return {
+    profile: { name: "", role: "job", focus: "", sample: "" },
+    events: [
+      { id: uid(), example: true, name: "AI Infra Founders Night", place: "SoMa, San Francisco", date: ymd(t - 3*H), end: hm(t - 2*H),
+        people: "Panel: 3 seed-stage infra founders", link: "", status: "upcoming", takeaway: "", context: "", drafts: [], postedIdx: null },
+      { id: uid(), example: true, name: "Product Leaders Fireside", place: "Palo Alto", date: ymd(t - 26*H), end: hm(t - 24*H),
+        people: "", link: "", status: "debriefed",
+        takeaway: "The best PMs I heard tonight write the press release before the spec.",
+        context: "Speaker said they kill about half their ideas at the press-release stage. Met two people moving from consulting into PM.",
+        drafts: [], postedIdx: null },
+      { id: uid(), example: true, name: "MBA x Startups Mixer", place: "Berkeley", date: ymd(t + 48*H), end: "20:30",
+        people: "", link: "", status: "upcoming", takeaway: "", context: "", drafts: [], postedIdx: null }
+    ],
+    asked: {}
+  };
+}
+let S = load() || seed();
+if (!S.profile) S.profile = seed().profile;
+
+const endTime = (ev) => { const [y,m,d] = ev.date.split("-").map(Number); const [hh,mm] = (ev.end || "21:00").split(":").map(Number); return new Date(y, m-1, d, hh, mm).getTime(); };
+const ended = (ev) => endTime(ev) <= now();
+const askAt = (ev) => ev.remindAt || endTime(ev);
+const awaiting = () => S.events.filter(e => e.status === "upcoming" && askAt(e) <= now()).sort((a,b) => askAt(b) - askAt(a));
+
+function ago(t) {
+  const m = Math.round((now() - t) / 60000);
+  if (m < 60) return m + " min ago";
+  const h = Math.round(m / 60);
+  if (h < 24) return h + " h ago";
+  return Math.round(h / 24) + " d ago";
+}
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+
+/* ---------- Claude: artifact runtime, or the site's own /api/generate ---------- */
+let samplePromise = null;
+function getSample() {
+  if (!samplePromise) {
+    samplePromise = (window.claude && typeof window.claude.use === "function")
+      ? window.claude.use("sample").catch(() => null)
+      : Promise.resolve(null);
+  }
+  return samplePromise;
+}
+async function ask(prompt, { json = false, quick = false, fresh = false } = {}) {
+  const sample = await getSample();
+  if (sample) {
+    const opts = { modelTier: quick ? "quick" : "default" };
+    if (fresh) opts.cache = false;
+    if (json) return await sample.json(prompt, opts);
+    return (await sample(prompt, opts)).text;
+  }
+  // Standalone deployment: serverless endpoint holds the API key.
+  const r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, json, quick }) });
+  if (!r.ok) throw { code: "upstream_error", message: "HTTP " + r.status };
+  const data = await r.json();
+  return data.result;
+}
+function errCopy(e) {
+  const c = e && e.code;
+  if (c === "not_granted" || c === "sampling_disabled") return "Drafting needs permission to use Claude. Allow it from this page's permissions and try again.";
+  if (c === "rate_limited") return "Too many drafts at once. Wait a minute, then try again.";
+  if (c === "invalid_json") return "The draft came back in an odd shape. Try again.";
+  if (c === "refused") return "Claude couldn't write from that input. Try rewording the takeaway.";
+  return "Couldn't reach Claude just now. Try again.";
+}
+
+const ROLE = {
+  job: { label: "Looking for my next role", angle: "a job seeker. The post should quietly show sharp domain thinking and curiosity a hiring manager would notice. Never beg for a job or say 'open to work' unless the notes say so." },
+  mba: { label: "MBA student", angle: "an MBA student. Frame it as what they learned and how it changes their view of the industry. Avoid sounding like a class assignment." },
+  op: { label: "Working at a startup", angle: "someone working at a startup. Give a point of view from inside the work, practical and specific." },
+  founder: { label: "Founder", angle: "a founder. Take a clear point of view tied to what they are building, without pitching the company." }
+};
+
+function draftPrompt(ev) {
+  const p = S.profile;
+  const role = ROLE[p.role] || ROLE.job;
+  return `You ghostwrite LinkedIn posts for people in the San Francisco Bay Area tech scene who just attended an event.
+
+THE WRITER
+- Name: ${p.name || "(not given)"}
+- Situation: ${role.angle}
+- Interests / what they want to be known for: ${p.focus || "(not given)"}
+${p.sample ? `- A post they wrote before, for voice only (match rhythm and vocabulary, never copy content):\n"""${p.sample.slice(0, 1500)}"""` : ""}
+
+THE EVENT
+- Name: ${ev.name}
+- Where: ${ev.place || "(not given)"}
+- Speakers / people: ${ev.people || "(not given)"}
+
+THEIR TAKEAWAY (the thesis of every post; keep its meaning, sharpen the wording):
+"${ev.takeaway}"
+
+THEIR RAW NOTES (material for specifics: quotes, numbers, moments, people. Use only what is here; never invent facts, names, numbers or quotes):
+"""${(ev.context || "(none)").slice(0, 6000)}"""
+
+Write 3 LinkedIn posts in English, each with a different opening:
+1. "story": opens on a concrete moment from the event.
+2. "contrarian": opens by naming a common belief, then shows what the event revealed instead.
+3. "lessons": opens with the takeaway, then 2-4 short numbered lessons drawn from the notes.
+
+RULES FOR EVERY POST
+- The first two lines must make someone click "see more": under 200 characters together, no throat-clearing.
+- 120-220 words. Short paragraphs of 1-2 sentences, blank line between them.
+- First person, plain spoken English, like a smart person talking. Specific beats grand.
+- Mention the event by name once. Credit speakers only if names are given in the notes or speakers field.
+- End with one genuine question to readers.
+- At most 3 hashtags on the last line, or none.
+- Never use: "thrilled", "excited to share", "game-changer", "delve", "in today's fast-paced world", "unlock", "leverage", em dashes, emoji bullets, "Here's the thing", "Let that sink in".
+
+Reply with only JSON: {"drafts":[{"style":"story","why":"<6-10 words on who this version suits>","text":"<the post>"},{"style":"contrarian",...},{"style":"lessons",...}]}`;
+}
+
+function refinePrompt(ev, text, how) {
+  return `Here is a LinkedIn post draft about the event "${ev.name}". The writer's takeaway: "${ev.takeaway}".
+Their raw notes (do not invent beyond these): """${(ev.context || "").slice(0, 3000)}"""
+
+DRAFT:
+"""${text}"""
+
+Rewrite it: ${how}
+Keep the same thesis, the hook-first opening (first two lines under 200 characters), short paragraphs, a closing question, no em dashes, no hype words. Reply with only the rewritten post text.`;
+}
+
+function suggestPrompt(ev, dump) {
+  return `Someone just left the event "${ev.name}" and dumped these raw thoughts:
+"""${dump.slice(0, 5000)}"""
+Propose 3 different one-sentence takeaways they could build a LinkedIn post around. Each under 20 words, first person where natural, specific to what they said (no generic advice), each a different angle.
+Reply with only a JSON array of 3 strings.`;
+}
+
+/* ---------- UI helpers ---------- */
+const $ = (s, el = document) => el.querySelector(s);
+function toast(msg) {
+  const root = $("#toast-root");
+  root.innerHTML = `<div class="toast">${esc(msg)}</div>`;
+  clearTimeout(toast.t); toast.t = setTimeout(() => root.innerHTML = "", 2400);
+}
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch { return false; }
+}
+
+let view = "inbox";
+let openDraftsFor = null;
+
+function tally() {
+  const att = S.events.filter(e => ended(e)).length;
+  const deb = S.events.filter(e => ["debriefed","posted"].includes(e.status)).length;
+  const post = S.events.filter(e => e.status === "posted").length;
+  $("#tally").innerHTML = `<b>${att}</b> attended · <b>${deb}</b> debriefed · <b>${post}</b> posted`;
+  const n = awaiting().length;
+  $("#tab-inbox").innerHTML = "Inbox" + (n ? `<span class="dot">${n}</span>` : "");
+}
+
+function setView(v) {
+  view = v;
+  document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.view === v)));
+  render();
+}
+document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => { openDraftsFor = null; setView(t.dataset.view); }));
+
+function render() {
+  tally();
+  const main = $("#main");
+  if (openDraftsFor) { main.innerHTML = draftsView(openDraftsFor); bindDrafts(openDraftsFor); return; }
+  if (view === "inbox") { main.innerHTML = inboxView(); bindInbox(); }
+  if (view === "events") { main.innerHTML = eventsView(); bindEvents(); }
+  if (view === "posts") { main.innerHTML = postsView(); bindPosts(); }
+  if (view === "me") { main.innerHTML = meView(); bindMe(); }
+}
+
+/* ---------- Inbox: the proactive ask ---------- */
+function inboxView() {
+  const list = awaiting();
+  const ready = S.events.filter(e => e.status === "debriefed").sort((a,b) => endTime(b) - endTime(a));
+  let h = `<section class="view">`;
+  if (!S.profile.name) {
+    h += `<div class="notice">Set up your profile in <b>You</b> so drafts sound like you and fit what you're going for.</div>`;
+  }
+  if (list.length === 0 && ready.length === 0) {
+    h += `<div class="empty"><h3>Nothing to debrief</h3>Add the events you're going to. When one ends, Debrief asks you for the one thing worth posting.<div class="row" style="justify-content:center;margin-top:14px"><button class="btn primary" id="go-add">Add an event</button></div></div>`;
+  }
+  for (const ev of list) {
+    h += `<article class="nudge" data-id="${ev.id}">
+      <div class="who"><div class="avatar" aria-hidden="true">D</div><div><div class="label">Debrief · ${esc(ago(endTime(ev)))}</div></div></div>
+      <p class="ask">How was <b>${esc(ev.name)}</b>${ev.example ? '<span class="ex">example</span>' : ""}? What's the one thing you'll still remember tomorrow?</p>
+      <div class="meta">${esc(ev.place || "")}${ev.people ? " · " + esc(ev.people) : ""}</div>
+      <div class="row">
+        <button class="btn primary" data-act="debrief">Answer</button>
+        <button class="btn ghost" data-act="later">Remind me tomorrow</button>
+        <button class="btn ghost" data-act="skip">Skip this one</button>
+      </div>
+    </article>`;
+  }
+  if (ready.length) {
+    h += `<div class="label" style="margin-top:8px">Drafts waiting for you</div><div class="events">`;
+    for (const ev of ready) h += evRow(ev, `<button class="btn small" data-open="${ev.id}">Open drafts</button>`);
+    h += `</div>`;
+  }
+  return h + `</section>`;
+}
+function bindInbox() {
+  $("#go-add")?.addEventListener("click", () => setView("events"));
+  document.querySelectorAll(".nudge").forEach(card => {
+    const ev = S.events.find(e => e.id === card.dataset.id);
+    card.querySelector('[data-act="debrief"]').onclick = () => openDebrief(ev);
+    card.querySelector('[data-act="later"]').onclick = () => {
+      const t = new Date(); t.setDate(t.getDate() + 1); t.setHours(8, 30, 0, 0);
+      ev.remindAt = t.getTime(); save(); render(); toast("I'll ask again tomorrow at 8:30");
+    };
+    card.querySelector('[data-act="skip"]').onclick = () => { ev.status = "skipped"; save(); render(); toast("Skipped"); };
+  });
+  bindOpenButtons();
+}
+function bindOpenButtons() {
+  document.querySelectorAll("[data-open]").forEach(b => b.onclick = () => {
+    const ev = S.events.find(e => e.id === b.dataset.open);
+    openDraftsFor = ev; render(); window.scrollTo(0, 0);
+    if (!ev.drafts.length) generate(ev);
+  });
+}
+
+/* ---------- Events ---------- */
+function evRow(ev, right) {
+  const [y, m, d] = ev.date.split("-").map(Number);
+  const mon = new Date(y, m - 1, d).toLocaleString("en-US", { month: "short" });
+  return `<div class="ev"><div class="date"><div class="m">${mon}</div><div class="d">${d}</div></div>
+    <div><div class="t">${esc(ev.name)}${ev.example ? '<span class="ex">example</span>' : ""}</div><div class="s">${esc(ev.place || "")}${ev.end ? " · ends " + esc(ev.end) : ""}</div></div>
+    <div>${right}</div></div>`;
+}
+function statusPill(ev) {
+  if (ev.status === "posted") return `<span class="pill done">Posted</span>`;
+  if (ev.status === "debriefed") return `<button class="btn small" data-open="${ev.id}">Drafts</button>`;
+  if (ev.status === "skipped") return `<span class="pill">Skipped</span>`;
+  if (ended(ev)) return `<span class="pill wait">Waiting</span>`;
+  return `<span class="pill">Upcoming</span>`;
+}
+function eventsView() {
+  const sorted = [...S.events].sort((a,b) => endTime(b) - endTime(a));
+  const t = new Date(); const def = ymd(t.getTime());
+  return `<section class="view">
+    <form class="card" id="add-form">
+      <h2 style="font-size:18px">Add an event you're going to</h2>
+      <p class="intro" style="font-size:13px">Debrief checks in after it ends. Paste the Luma or Eventbrite link if you have it.</p>
+      <div class="field"><label for="f-name">Event name</label><input type="text" id="f-name" required placeholder="e.g. Women in AI Breakfast"></div>
+      <div class="grid2">
+        <div class="field"><label for="f-date">Date</label><input type="date" id="f-date" value="${def}" required></div>
+        <div class="field"><label for="f-end">Ends at</label><input type="time" id="f-end" value="21:00" required></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label for="f-place">Where</label><input type="text" id="f-place" placeholder="e.g. Mission, SF"></div>
+        <div class="field"><label for="f-link">Event link</label><input type="url" id="f-link" placeholder="https://lu.ma/..."></div>
+      </div>
+      <div class="field"><label for="f-people">Speakers or hosts</label><input type="text" id="f-people" placeholder="Names you might want to credit"><span class="hint">Only names you add here or in your notes get mentioned in drafts.</span></div>
+      <div class="row"><button class="btn primary" type="submit">Add event</button><button class="btn ghost" type="button" id="f-now">It just ended, debrief now</button></div>
+    </form>
+    <div class="label">Your events</div>
+    ${sorted.length ? `<div class="events">${sorted.map(ev => evRow(ev, statusPill(ev) + ` <button class="btn small ghost" data-del="${ev.id}" aria-label="Remove ${esc(ev.name)}">✕</button>`)).join("")}</div>` : `<div class="empty">No events yet.</div>`}
+  </section>`;
+}
+function bindEvents() {
+  const f = $("#add-form");
+  const read = () => ({
+    id: uid(), name: $("#f-name").value.trim(), date: $("#f-date").value, end: $("#f-end").value,
+    place: $("#f-place").value.trim(), link: $("#f-link").value.trim(), people: $("#f-people").value.trim(),
+    status: "upcoming", takeaway: "", context: "", drafts: [], postedIdx: null
+  });
+  f.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const ev = read(); if (!ev.name) return;
+    S.events.push(ev); save(); render();
+    toast(ended(ev) ? "Added. It's in your Inbox." : "Added. I'll check in when it ends.");
+  });
+  $("#f-now").onclick = () => {
+    const name = $("#f-name").value.trim();
+    if (!name) { $("#f-name").focus(); toast("Name the event first"); return; }
+    const ev = read(); const t = now() - 60000; ev.date = ymd(t); ev.end = hm(t);
+    S.events.push(ev); save(); render(); openDebrief(ev);
+  };
+  document.querySelectorAll("[data-del]").forEach(b => b.onclick = () => {
+    if (b.dataset.armed) { S.events = S.events.filter(e => e.id !== b.dataset.del); save(); render(); toast("Removed"); }
+    else { b.dataset.armed = "1"; b.textContent = "Remove?"; setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.textContent = "✕"; } }, 2500); }
+  });
+  bindOpenButtons();
+}
+
+/* ---------- Posts ---------- */
+function postsView() {
+  const done = S.events.filter(e => e.drafts.length || e.status === "posted").sort((a,b) => endTime(b) - endTime(a));
+  if (!done.length) return `<section class="view"><div class="empty"><h3>No drafts yet</h3>Answer a check-in from your Inbox and your drafts show up here.</div></section>`;
+  return `<section class="view"><div class="events">${done.map(ev => evRow(ev,
+    (ev.status === "posted" ? `<span class="pill done">Posted</span> ` : "") + `<button class="btn small" data-open="${ev.id}">Open</button>`)).join("")}</div></section>`;
+}
+function bindPosts() { bindOpenButtons(); }
+
+/* ---------- Profile ---------- */
+function meView() {
+  const p = S.profile;
+  return `<section class="view">
+    <form class="card" id="me-form">
+      <h2 style="font-size:18px">About you</h2>
+      <p class="intro" style="font-size:13px">Drafts use this to pick the angle. It stays in this browser.</p>
+      <div class="field"><label for="p-name">Your name</label><input type="text" id="p-name" value="${esc(p.name)}" placeholder="First name is fine"></div>
+      <fieldset class="field" style="border:0;padding:0;margin:0"><legend style="font-size:13px;font-weight:500;margin-bottom:6px">Where you are right now</legend>
+        <div class="roles">${Object.entries(ROLE).map(([k, r]) => `<label><input type="radio" name="role" value="${k}" ${p.role === k ? "checked" : ""}><span>${r.label}</span></label>`).join("")}</div>
+      </fieldset>
+      <div class="field"><label for="p-focus">What you want to be known for</label><input type="text" id="p-focus" value="${esc(p.focus)}" placeholder="e.g. AI infra go-to-market, climate fintech, B2B product"></div>
+      <div class="field"><label for="p-sample">A LinkedIn post you've written (optional)</label><textarea id="p-sample" placeholder="Paste one so drafts match your voice">${esc(p.sample)}</textarea></div>
+      <div class="row"><button class="btn primary" type="submit">Save</button></div>
+    </form>
+    <div class="card">
+      <h2 style="font-size:16px">Start fresh</h2>
+      <p class="intro" style="font-size:13px">Removes the example events and everything you've added in this browser.</p>
+      <div class="row"><button class="btn" id="reset">Clear all data</button></div>
+    </div>
+  </section>`;
+}
+function bindMe() {
+  $("#me-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    S.profile = { name: $("#p-name").value.trim(), role: (document.querySelector('input[name="role"]:checked') || {}).value || "job", focus: $("#p-focus").value.trim(), sample: $("#p-sample").value.trim() };
+    save(); render(); toast("Saved");
+  });
+  const r = $("#reset");
+  r.onclick = () => {
+    if (!r.dataset.armed) { r.dataset.armed = "1"; r.textContent = "Tap again to clear everything"; return; }
+    S = { profile: S.profile, events: [], asked: {} }; save(); setView("inbox"); toast("Cleared");
+  };
+}
+
+/* ---------- Debrief conversation ---------- */
+let SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+function openDebrief(ev) {
+  const root = $("#sheet-root");
+  const convo = []; // {who, text}
+  let step = "takeaway"; // takeaway | context | dump | pick
+  let dump = "";
+  root.innerHTML = `<div class="scrim" id="scrim"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-title">
+    <div class="sheet-head"><h2 id="sh-title">${esc(ev.name)}</h2><button class="btn small ghost" id="sh-close">Close</button></div>
+    <div class="chat" id="chat"></div>
+    <div class="composer">
+      <div class="quick" id="quick"></div>
+      <div class="line">
+        <label for="say" class="sr">Your reply</label>
+        <textarea id="say" rows="1" placeholder="Type your answer"></textarea>
+        <button class="mic" id="mic" type="button" aria-label="Speak your answer" hidden>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+        </button>
+        <button class="btn primary" id="send" type="button">Send</button>
+      </div>
+    </div>
+  </div></div>`;
+  const chat = $("#chat"), say = $("#say"), quick = $("#quick");
+  const close = () => { stopMic(); root.innerHTML = ""; render(); };
+  $("#sh-close").onclick = close;
+  $("#scrim").addEventListener("click", (e) => { if (e.target.id === "scrim") close(); });
+  document.addEventListener("keydown", function onEsc(e) { if (e.key === "Escape" && root.innerHTML) { close(); document.removeEventListener("keydown", onEsc); } });
+
+  const push = (who, text, cls = "") => { convo.push({ who, text }); const d = document.createElement("div"); d.className = `msg ${who} ${cls}`; d.textContent = text; chat.appendChild(d); chat.scrollTop = chat.scrollHeight; return d; };
+  const setQuick = (items) => { quick.innerHTML = ""; for (const [label, fn] of items) { const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.textContent = label; b.onclick = fn; quick.appendChild(b); } };
+
+  // Opening question
+  push("bot", `How was ${ev.name}? What's the one thing you'll still remember tomorrow? A single line is enough.`);
+  setQuick([["Not sure yet, help me find it", () => { step = "dump"; push("me", "Not sure yet"); push("bot", "No problem. Just dump whatever's in your head: a line someone said, who you met, what surprised you, what annoyed you. Messy is fine."); setQuick([]); say.placeholder = "Brain dump"; say.focus(); }]]);
+  setTimeout(() => say.focus(), 50);
+
+  async function submit() {
+    const text = say.value.trim();
+    if (!text) return;
+    say.value = ""; say.style.height = "";
+    push("me", text);
+    if (step === "takeaway") {
+      ev.takeaway = text; step = "context";
+      push("bot", "Good one. Anything behind it? A quote, a moment, someone you met, why it stuck with you. This is what makes the post sound like you were actually there.");
+      say.placeholder = "Add details (optional)";
+      setQuick([["Skip, write the drafts", () => finish("")]]);
+    } else if (step === "context") {
+      finish(text);
+    } else if (step === "dump") {
+      dump = text; step = "pick"; setQuick([]);
+      const typing = push("bot", "Reading that…", "typing");
+      try {
+        const opts = await ask(suggestPrompt(ev, dump), { json: true, quick: true, fresh: true });
+        typing.remove();
+        const list = (Array.isArray(opts) ? opts : []).map(String).filter(Boolean).slice(0, 3);
+        if (!list.length) throw { code: "invalid_json" };
+        push("bot", "Here's what I heard. Pick the one that feels most like you, or type your own.");
+        const box = document.createElement("div"); box.className = "suggest";
+        list.forEach(s => { const b = document.createElement("button"); b.type = "button"; b.textContent = s; b.onclick = () => { box.remove(); push("me", s); ev.takeaway = s; finish(dump); }; box.appendChild(b); });
+        chat.appendChild(box); chat.scrollTop = chat.scrollHeight;
+        say.placeholder = "Or write your own takeaway";
+      } catch (e) {
+        typing.remove(); push("bot", errCopy(e) + " You can also type your takeaway yourself.");
+      }
+    } else if (step === "pick") {
+      ev.takeaway = text; finish(dump);
+    }
+  }
+  function finish(ctx) {
+    stopMic();
+    ev.context = ctx; ev.status = "debriefed"; ev.drafts = []; save();
+    root.innerHTML = ""; openDraftsFor = ev; render(); window.scrollTo(0, 0);
+    generate(ev);
+  }
+  $("#send").onclick = submit;
+  say.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); submit(); } });
+  say.addEventListener("input", () => { say.style.height = "auto"; say.style.height = Math.min(say.scrollHeight, 160) + "px"; });
+
+  // Voice input where the browser allows it
+  let rec = null;
+  const mic = $("#mic");
+  function stopMic() { try { rec && rec.stop(); } catch {} rec = null; mic && mic.classList.remove("on"); }
+  if (SR) {
+    mic.hidden = false;
+    mic.onclick = () => {
+      if (rec) { stopMic(); return; }
+      try {
+        rec = new SR(); rec.lang = "en-US"; rec.interimResults = true; rec.continuous = true;
+        const base = say.value ? say.value + " " : "";
+        rec.onresult = (e) => { let t = ""; for (let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript; say.value = base + t; say.dispatchEvent(new Event("input")); };
+        rec.onerror = (e) => { stopMic(); if (e.error === "not-allowed" || e.error === "service-not-allowed") { mic.hidden = true; SR = null; toast("Voice input isn't available here. Type instead."); } };
+        rec.onend = () => { rec = null; mic.classList.remove("on"); };
+        rec.start(); mic.classList.add("on");
+      } catch { mic.hidden = true; SR = null; toast("Voice input isn't available here. Type instead."); }
+    };
+  }
+}
+
+/* ---------- Drafts ---------- */
+const STYLE_NAME = { story: "Story", contrarian: "Contrarian", lessons: "Lessons" };
+let generating = new Set();
+
+async function generate(ev) {
+  if (generating.has(ev.id)) return;
+  generating.add(ev.id); render();
+  try {
+    const out = await ask(draftPrompt(ev), { json: true, fresh: true });
+    const list = (out && Array.isArray(out.drafts) ? out.drafts : []).filter(d => d && d.text).slice(0, 3)
+      .map(d => ({ style: String(d.style || "draft"), why: String(d.why || ""), text: String(d.text).trim(), vote: 0 }));
+    if (!list.length) throw { code: "invalid_json" };
+    ev.drafts = list; ev.error = ""; save();
+  } catch (e) {
+    ev.error = errCopy(e);
+  } finally {
+    generating.delete(ev.id); if (openDraftsFor === ev) render(); else tally();
+  }
+}
+
+function hookOf(text) {
+  const lines = text.split("\n").filter(l => l.trim());
+  let s = lines.slice(0, 2).join(" ");
+  return s.length > 210 ? s.slice(0, 210) + "…" : s;
+}
+
+function draftsView(ev) {
+  let h = `<section class="view">
+    <div class="row"><button class="btn small ghost" id="back">← Back</button></div>
+    <div class="drafts-head">
+      <div class="label">${esc(ev.name)}${ev.example ? ' <span class="ex">example</span>' : ""} · your takeaway</div>
+      <p class="takeaway-quote">“${esc(ev.takeaway)}”</p>
+    </div>`;
+  if (ev.status === "posted") h += `<div class="posted-banner">Posted. That's ${S.events.filter(e => e.status === "posted").length} so far.</div>`;
+  if (generating.has(ev.id)) {
+    h += `<div class="card" aria-live="polite"><div class="label">Writing 3 drafts</div><p class="intro">Story, contrarian and lessons versions, each built around your takeaway. Usually 20 to 40 seconds.</p></div>`;
+  } else if (ev.error && !ev.drafts.length) {
+    h += `<div class="card"><p class="intro">${esc(ev.error)}</p><div class="row"><button class="btn primary" id="retry">Write drafts</button></div></div>`;
+  } else if (!ev.drafts.length) {
+    h += `<div class="card"><p class="intro">Ready when you are.</p><div class="row"><button class="btn primary" id="retry">Write drafts</button></div></div>`;
+  }
+  ev.drafts.forEach((d, i) => {
+    const n = d.text.length;
+    h += `<article class="draft" data-i="${i}">
+      <header><div><h3>${esc(STYLE_NAME[d.style] || d.style)}${ev.postedIdx === i ? ' <span class="pill done">Posted</span>' : ""}</h3><div class="why">${esc(d.why)}</div></div>
+        <div class="row"><button class="btn small ghost" data-vote="1" aria-pressed="${d.vote === 1}" aria-label="Good draft">${d.vote === 1 ? "▲" : "△"}</button><button class="btn small ghost" data-vote="-1" aria-pressed="${d.vote === -1}" aria-label="Weak draft">${d.vote === -1 ? "▼" : "▽"}</button></div></header>
+      <div class="preview-line"><b>Before “see more”:</b> ${esc(hookOf(d.text))}</div>
+      <div class="refine">
+        <button class="chip" data-refine="Make it about 30% shorter.">Shorter</button>
+        <button class="chip" data-refine="Make it more personal: more 'I', more of the writer's own reaction, less summary of what speakers said.">More personal</button>
+        <button class="chip" data-refine="Make it more casual and less polished, like a quick post written on the train home.">More casual</button>
+        <button class="chip" data-refine="Write a sharper, more surprising first two lines; keep the rest.">Sharper hook</button>
+      </div>
+      <label class="sr" for="d-${ev.id}-${i}">Draft text</label>
+      <textarea id="d-${ev.id}-${i}" spellcheck="true">${esc(d.text)}</textarea>
+      <footer><span class="count mono ${n > 3000 ? "over" : ""}">${n} / 3000</span>
+        <div class="row">
+          <button class="btn small" data-copy>Copy</button>
+          <a class="btn small primary" data-li href="https://www.linkedin.com/feed/?shareActive=true" target="_blank" rel="noopener">Copy &amp; open LinkedIn</a>
+          ${ev.postedIdx === i ? "" : `<button class="btn small" data-posted>I posted this</button>`}
+        </div>
+      </footer>
+    </article>`;
+  });
+  if (ev.drafts.length && !generating.has(ev.id)) h += `<div class="row"><button class="btn ghost" id="retry">Write 3 new drafts</button><button class="btn ghost" id="redo">Change takeaway</button></div>`;
+  return h + `</section>`;
+}
+
+function bindDrafts(ev) {
+  $("#back").onclick = () => { openDraftsFor = null; render(); };
+  $("#retry")?.addEventListener("click", () => generate(ev));
+  $("#redo")?.addEventListener("click", () => { ev.status = "upcoming"; save(); openDraftsFor = null; openDebrief(ev); });
+  document.querySelectorAll(".draft").forEach(card => {
+    const i = Number(card.dataset.i), d = ev.drafts[i], ta = card.querySelector("textarea"), cnt = card.querySelector(".count");
+    ta.addEventListener("input", () => { d.text = ta.value; cnt.textContent = ta.value.length + " / 3000"; cnt.classList.toggle("over", ta.value.length > 3000); save(); });
+    card.querySelector("[data-copy]").onclick = async () => { if (await copyText(d.text)) toast("Copied"); else { ta.select(); toast("Selected. Press Ctrl/⌘+C to copy"); } };
+    card.querySelector("[data-li]").addEventListener("click", async () => { const ok = await copyText(d.text); toast(ok ? "Copied. Paste it into the LinkedIn post box" : "Copy the text first, then paste it in LinkedIn"); });
+    card.querySelector("[data-posted]")?.addEventListener("click", () => { ev.status = "posted"; ev.postedIdx = i; ev.postedAt = now(); save(); render(); toast("Nice. Marked as posted"); });
+    card.querySelectorAll("[data-vote]").forEach(b => b.onclick = () => { const v = Number(b.dataset.vote); d.vote = d.vote === v ? 0 : v; save(); render(); });
+    card.querySelectorAll("[data-refine]").forEach(b => b.onclick = async () => {
+      const all = card.querySelectorAll("button, textarea"); all.forEach(x => x.disabled = true);
+      const label = b.textContent; b.textContent = "Rewriting…";
+      try {
+        const t = await ask(refinePrompt(ev, d.text, b.dataset.refine), { fresh: true });
+        d.text = String(t).trim().replace(/^"""|"""$/g, "").trim(); save(); render();
+      } catch (e) { b.textContent = label; all.forEach(x => x.disabled = false); toast(errCopy(e)); }
+    });
+  });
+}
+
+/* ---------- boot ---------- */
+render();
+setInterval(() => { if (!openDraftsFor && !$("#sheet-root").innerHTML) tally(); }, 60000);
+getSample();
+})();
+</script>
+
+</body>
+</html>
