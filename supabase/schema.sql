@@ -1,5 +1,5 @@
 -- Human Takeaway: lines table with row-level security.
--- Run once in the Supabase SQL editor.
+-- Applied to the project as migration "create_lines". Re-run safely on a fresh project.
 
 create table if not exists public.lines (
   id           uuid primary key,
@@ -20,29 +20,15 @@ create index if not exists lines_public_event_idx on public.lines (lower(event_t
 
 alter table public.lines enable row level security;
 
--- Owners can do everything with their own lines.
-drop policy if exists "own lines: read" on public.lines;
+-- Signed-in users can only see and change their own lines.
 create policy "own lines: read" on public.lines
-  for select using (auth.uid() = user_id);
-
-drop policy if exists "own lines: insert" on public.lines;
+  for select to authenticated using ((select auth.uid()) = user_id);
 create policy "own lines: insert" on public.lines
-  for insert with check (auth.uid() = user_id);
-
-drop policy if exists "own lines: update" on public.lines;
+  for insert to authenticated with check ((select auth.uid()) = user_id);
 create policy "own lines: update" on public.lines
-  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
-
-drop policy if exists "own lines: delete" on public.lines;
+  for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 create policy "own lines: delete" on public.lines
-  for delete using (auth.uid() = user_id);
+  for delete to authenticated using ((select auth.uid()) = user_id);
 
--- Public lines: only the line and its event are exposed, through this view.
--- Posts, source names and author ids stay private.
-create or replace view public.public_lines
-with (security_invoker = false) as
-  select id, line, event_title, industries, functions, role, created_at
-  from public.lines
-  where visibility = 'public';
-
-grant select on public.public_lines to anon, authenticated;
+-- Public lines are not readable by anyone else yet. Exposure for event pages
+-- (line, event title and tags only) will be added with that feature.
