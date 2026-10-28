@@ -289,41 +289,106 @@ function errCopy(e) {
   return "Couldn't finish writing. Try again.";
 }
 
-const NO = `Never use: em dashes, "thrilled", "excited to share", "game-changer", "delve", "unlock", "leverage", "in today's fast-paced world", "Here's the thing", "Let that sink in", emoji bullets. Never invent facts, names, numbers or quotes that are not in the transcript.`;
+const NO = `Never use: em dashes, "thrilled", "excited to share", "humbled", "game-changer", "delve", "unlock", "leverage", "in today's fast-paced world", "Here's the thing", "Let that sink in", "Agree?", emoji bullets. Never invent facts, names, numbers or quotes that are not in the transcript or the writer's line.`;
 
-function mainPrompt() {
+const NOT_A_SUMMARY = `THE TRANSCRIPT IS RAW MATERIAL, NOT THE SUBJECT.
+- Do not summarize, recap, or report what was said. No agenda, no list of speakers, no "the panel discussed".
+- The subject is the writer's one line: what THEY now believe. Use at most 2 or 3 details from the transcript, picked because they prove or sharpen that line.
+- Never open with "Just attended", "Key takeaways from", "I learned that", "Yesterday at", "Great event".
+- The event is setting, a few words at most, or left out. Someone who was not there must still get value.
+- Before answering, check each draft: if it reads like meeting notes, rewrite it as an opinion.`;
+
+const X_VOICE = `VOICE: founders and tech operators who get read on X, the people building companies backed by YC, a16z or Sequoia, and the engineers, investors and operators whose posts get passed around in SF. Write in the genre, not as any one person.
+- One idea, stated as a claim. They say what they believe, not what someone said.
+- Compressed. Sentences of 3 to 12 words. Line breaks for rhythm. Cut every word that doesn't carry weight.
+- Insider and concrete: real numbers and working vocabulary (ARR, churn, evals, latency, seed, GTM, headcount), the way people talk in Slack, not in press releases.
+- Confident, a little contrarian, takes a side. Dry humor is welcome. Never preachy or motivational.
+- Casual register. Lowercase is fine. Contractions. No corporate words.
+- No hashtags, no emoji, no "thread", no "1/" numbering.
+
+TONE REFERENCES (invented, for tone only; never reuse their content):
+"most 'ai-native' startups are services companies with a nicer landing page. that's fine. just price it like one."
+"nobody buys a model. they buy back the 3 hours a week their ops team loses to spreadsheets."
+"the founders who seemed calmest tonight all had the same thing in common: they'd already killed their favorite feature."`;
+
+const LI_VOICE = `VOICE: California-based LinkedIn creators with 10,000+ followers whose posts consistently earn real comments: operators, founders, PMs, recruiters and investors in SF, the Bay Area and LA. Write in the genre, not as any one person.
+- Line 1 is the hook: a short, specific, slightly surprising statement or moment, under 12 words. Line 2 raises the stakes or flips it. Lines 1 and 2 together under 200 characters.
+- It reads as a personal story with a point: a moment the writer experienced, the tension, how their thinking changed. The insight is the subject; the event is the setting.
+- Mostly one sentence per line, with white space between ideas. One short list (3 items, using "→" or numbers) is fine if it earns its place.
+- Specifics beat adjectives: a number, a fragment of a quote, a tool, a role.
+- Warm, generous and confident. Credit people only when their names are given. No humblebrag.
+- Close with one question that invites people's own experience, not a yes/no.
+- 1,300 to 1,900 characters. Up to 3 niche hashtags on the last line, or none.
+
+SHAPE REFERENCE (invented, for structure only; never reuse its content):
+"I almost left the dinner early.
+
+Then a founder said something I haven't stopped thinking about.
+
+[the moment, 2-3 short lines]
+
+[what it changed in how the writer sees their own work, 3-5 lines]
+
+[the one line, stated plainly]
+
+[a question for readers]"`;
+
+function context() {
   const r = ROLES[S.role];
   const tx = S.source.text.length > 60000 ? S.source.text.slice(0, 60000) + "\n[transcript truncated]" : S.source.text;
-  return `You turn recorded talks, meetings and conversations into social posts written in the voice of the person who was there.
-
-WRITER: ${r.angle}
-${S.meta.event ? `EVENT: ${S.meta.event} (mention it by name once)` : ""}
+  return `WRITER: ${r.angle}
+${S.meta.event ? `EVENT: ${S.meta.event}` : ""}
 ${S.meta.industries.length || S.meta.functions.length ? `TOPIC AREAS: ${[...S.meta.industries, ...S.meta.functions].join(", ")}` : ""}
 
-THEIR ONE LINE (the thesis of everything you write; keep its meaning, you may sharpen the wording):
+THE WRITER'S OWN LINE (the thesis; keep its meaning, you may sharpen the wording):
 "${S.takeaway}"
 
-TRANSCRIPT (source of specifics: moments, quotes, numbers, names):
-"""${tx}"""
+TRANSCRIPT:
+"""${tx}"""`;
+}
 
-Write two things in English, first person, plain spoken, specific over grand.
+function xPrompt() {
+  return `You ghostwrite X posts. ${X_VOICE}
 
-1. X: a thread of 3 to 5 posts. Post 1 must stand alone and make people stop scrolling; it states the line in a fresh way. Each post at most 270 characters. No hashtags. No "1/" numbering. Last post ends with a question or a crisp closing thought.
+${NOT_A_SUMMARY}
 
-2. LinkedIn: one post of 150 to 230 words. The first two lines decide whether anyone clicks "see more", so keep them under 200 characters and make them concrete. Short paragraphs of one or two sentences with a blank line between. End with one genuine question. At most 3 hashtags on the final line, or none.
+${context()}
+
+Write a short X thread in English:
+- Post 1 stands alone and is the post people repost: the writer's line turned into a sharp claim. At most 260 characters.
+- Then 1 to 3 follow-up posts, each adding one thing: a specific from the transcript, the mechanism behind the claim, or a counterexample. Each at most 270 characters.
+- The last post lands it with a sharp line or a real question.
 
 ${NO}
 
-Reply with only JSON: {"x":["post 1","post 2",...],"linkedin":"the full post"}`;
+Reply with only JSON: {"x":["post 1","post 2",...]}`;
 }
+
+function liPrompt() {
+  return `You ghostwrite LinkedIn posts. ${LI_VOICE}
+
+${NOT_A_SUMMARY}
+
+${context()}
+
+Write one LinkedIn post in English.
+
+${NO}
+
+Reply with only JSON: {"linkedin":"the full post"}`;
+}
+
 function refinePrompt(how) {
   const r = ROLES[S.role];
   const isX = S.tab === "x";
   const cur = isX ? S.out.x.map((p, i) => `[${i + 1}] ${p}`).join("\n\n") : S.out.linkedin;
-  return `Rewrite this ${isX ? "X thread" : "LinkedIn post"} written by ${r.angle}
-Their one line: "${S.takeaway}".
-Change requested: ${how}
-Keep the same thesis and facts. ${isX ? "Each post at most 270 characters, no hashtags, no numbering." : "First two lines under 200 characters, short paragraphs, a closing question."}
+  return `You ghostwrite ${isX ? "X posts" : "LinkedIn posts"}. ${isX ? X_VOICE : LI_VOICE}
+
+The writer is ${r.angle}
+Their own line: "${S.takeaway}".
+
+Rewrite the draft below. Change requested: ${how}
+Keep the thesis and the facts. Keep it an opinion, never a summary of an event. ${isX ? "Each post at most 270 characters, post 1 at most 260." : "Lines 1 and 2 together under 200 characters."}
 ${NO}
 
 CURRENT:
@@ -507,7 +572,7 @@ function resultView() {
   const li = o ? o.linkedin : "";
   const hk = hook(li).length;
   let body;
-  if (busy && !o) body = `<div class="writing"><div class="big">Writing your posts…</div><div>Reading the transcript and building around your line. Usually 20 to 40 seconds.</div></div>`;
+  if (busy && !o) body = `<div class="writing"><div class="big">Writing your posts…</div><div>Writing the X thread and the LinkedIn post in parallel, each in its own voice. Usually 20 to 40 seconds.</div></div>`;
   else if (!o) body = `<div class="err">${esc(error || "Nothing written yet.")}</div>`;
   else if (isX) body = `<div class="thread">${xs.map((p, i) => `<div class="post"><label class="sr" for="x-${i}">Post ${i + 1}</label><textarea id="x-${i}" data-x="${i}" rows="4">${esc(p)}</textarea><div class="foot"><span>${i === 0 ? "Opening post" : "Post " + (i + 1)}</span><span class="num ${p.length > 280 ? "over" : ""}" data-xc="${i}">${p.length}/280</span></div></div>`).join("")}</div>`;
   else body = `<div class="post li"><div class="hookline"><b>Before “see more”:</b> <span id="hk">${esc(hook(li).slice(0, 210))}${hook(li).length > 210 ? "…" : ""}</span></div><label class="sr" for="li">LinkedIn post</label><textarea id="li">${esc(li)}</textarea><div class="foot"><span>LinkedIn</span><span class="num" id="lic">${li.length}/3000</span></div></div>`;
@@ -713,9 +778,9 @@ async function write() {
   if (!ready() || busy) return;
   busy = true; error = ""; mode = "result"; S.out = null; render();
   try {
-    const r = await ask(mainPrompt(), { json: true });
-    const x = (r && Array.isArray(r.x) ? r.x : []).map(String).map(s => s.trim()).filter(Boolean).slice(0, 6);
-    const li = r && r.linkedin ? String(r.linkedin).trim() : "";
+    const [rx, rl] = await Promise.all([ask(xPrompt(), { json: true }), ask(liPrompt(), { json: true })]);
+    const x = (rx && Array.isArray(rx.x) ? rx.x : []).map(String).map(s => s.trim()).filter(Boolean).slice(0, 5);
+    const li = rl && rl.linkedin ? String(rl.linkedin).trim() : "";
     if (!x.length || !li) throw { code: "invalid_json" };
     S.out = { x, linkedin: li };
     S.lib.unshift({ id: Math.random().toString(36).slice(2, 10), line: S.takeaway.trim(), event: S.meta.event.trim(), industries: [...S.meta.industries], functions: [...S.meta.functions], role: S.role, sourceName: S.source.name, at: Date.now(), out: JSON.parse(JSON.stringify(S.out)) });
