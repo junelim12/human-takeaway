@@ -492,9 +492,8 @@ function ring(v, max, label, unit, soft) {
 
 function sourceBlock() {
   const s = S.source;
-  if (pasting) {
-    return `<label class="sr" for="paste">Paste transcript</label><textarea class="paste" id="paste" placeholder="Paste the transcript here">${esc(s && s.kind === "text" && s.name === "Pasted transcript" ? s.text : "")}</textarea>
-      <div class="sec"><button class="btn" id="paste-ok" type="button">Use this text</button><button class="btn" id="paste-x" type="button">Cancel</button></div>`;
+  if (pasting || (s && s.name === "Pasted transcript")) {
+    return `<label class="sr" for="paste">Transcript</label><textarea class="paste" id="paste" placeholder="Paste or type the transcript here">${esc(s && s.name === "Pasted transcript" ? s.text : "")}</textarea>`;
   }
   if (!s) {
     return `<div class="drop" id="drop"><div>
@@ -695,11 +694,27 @@ function bind() {
   // compose
   $("#browse")?.addEventListener("click", () => $("#file").click());
   $("#paste-btn")?.addEventListener("click", () => { pasting = true; render(); $("#paste")?.focus(); });
-  $("#paste-x")?.addEventListener("click", () => { pasting = false; render(); });
-  $("#paste-ok")?.addEventListener("click", () => {
-    const t = $("#paste").value.trim(); if (!t) { toast("Paste some text first"); return; }
-    S.source = { kind: "text", name: "Pasted transcript", text: t, words: words(t) }; pasting = false; S.out = null; S.meta = blankMeta(); save(); render(); suggestTags();
-  });
+  const pa = $("#paste");
+  if (pa) {
+    let t1, t2;
+    const commit = () => {
+      const v = pa.value.trim();
+      const wasPasted = !!(S.source && S.source.name === "Pasted transcript");
+      if (!v) { if (wasPasted) { S.source = null; S.meta = blankMeta(); save(); render(); } return; }
+      if (wasPasted && S.source.text === v) return;
+      if (!wasPasted) S.meta = blankMeta();
+      S.source = { kind: "text", name: "Pasted transcript", text: v, words: words(v) }; S.out = null; save();
+      if (!wasPasted) { render(); return; }          // first text in: show the event card and status once
+      const g = $("#go"); if (g) g.disabled = !ready() || busy;
+      const lead = document.querySelector(".card.tint .lead"); if (lead) lead.textContent = S.source.words.toLocaleString() + " words";
+    };
+    pa.addEventListener("input", () => {
+      clearTimeout(t1); clearTimeout(t2);
+      t1 = setTimeout(commit, 300);
+      t2 = setTimeout(() => { if (S.source && S.source.text.length > 200 && !S.meta.suggested) suggestTags(); }, 1500);
+    });
+    pa.addEventListener("blur", () => { clearTimeout(t1); commit(); if (!S.source) { pasting = false; render(); } });
+  }
   const drop = $("#drop");
   if (drop) {
     ["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
