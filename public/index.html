@@ -1288,9 +1288,12 @@ window.addEventListener("resize", drawWave);
 const THEME_KEY = "ht.theme";
 const darkMQ = window.matchMedia ? matchMedia("(prefers-color-scheme: dark)") : null;
 function savedTheme() { try { const t = localStorage.getItem(THEME_KEY); return t === "light" || t === "dark" ? t : null; } catch { return null; } }
-function effectiveTheme() { return savedTheme() || (darkMQ && darkMQ.matches ? "dark" : "light"); }
+function deviceTheme() { return darkMQ && darkMQ.matches ? "dark" : "light"; }
+// Inside a Claude viewer the host sets data-theme itself; that is the starting point there.
+const hostTheme = (() => { const a = document.documentElement.getAttribute("data-theme"); return inArtifact() && (a === "light" || a === "dark") ? a : null; })();
+function effectiveTheme() { return savedTheme() || hostTheme || deviceTheme(); }
 function applyTheme() {
-  const t = savedTheme(), r = document.documentElement;
+  const t = savedTheme() || hostTheme, r = document.documentElement;
   if (t) r.setAttribute("data-theme", t); else r.removeAttribute("data-theme");
   const dark = effectiveTheme() === "dark", b = $("#theme");
   b.classList.toggle("is-dark", dark);
@@ -1298,18 +1301,16 @@ function applyTheme() {
   b.title = dark ? "Light mode" : "Dark mode";
   requestAnimationFrame(drawWave);
 }
-if (!inArtifact()) {
-  $("#theme").hidden = false; $("#theme-sep").hidden = false;
+$("#theme").hidden = false; $("#theme-sep").hidden = false;
+applyTheme();
+$("#theme").addEventListener("click", () => {
+  const next = effectiveTheme() === "dark" ? "light" : "dark";
+  // Picking the starting mode again clears the override, so the page follows the device (or the Claude app) again.
+  const base = hostTheme || deviceTheme();
+  try { if (next === base) localStorage.removeItem(THEME_KEY); else localStorage.setItem(THEME_KEY, next); } catch {}
   applyTheme();
-  $("#theme").addEventListener("click", () => {
-    const next = effectiveTheme() === "dark" ? "light" : "dark";
-    // Picking the device's own mode clears the override, so the site follows the device again.
-    const deviceMode = darkMQ && darkMQ.matches ? "dark" : "light";
-    try { if (next === deviceMode) localStorage.removeItem(THEME_KEY); else localStorage.setItem(THEME_KEY, next); } catch {}
-    applyTheme();
-  });
-  darkMQ && darkMQ.addEventListener && darkMQ.addEventListener("change", () => { if (!savedTheme()) applyTheme(); });
-}
+});
+darkMQ && darkMQ.addEventListener && darkMQ.addEventListener("change", () => { if (!savedTheme()) applyTheme(); });
 window.matchMedia && matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", drawWave);
 
 // First visit: open the guide so the page explains itself
