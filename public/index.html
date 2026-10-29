@@ -331,7 +331,11 @@ async function ask(prompt, { json = false, quick = false, tier = null } = {}) {
     return json ? await sample.json(prompt, opts) : (await sample(prompt, opts)).text;
   }
   const r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, json, quick, tier }) });
-  if (!r.ok) throw { code: r.status === 429 ? "rate_limited" : "upstream_error" };
+  if (!r.ok) {
+    let j = {}; try { j = await r.json(); } catch {}
+    // 504 with no JSON = Vercel stopped the function for running too long.
+    throw { code: r.status === 504 ? "timeout" : (j.error || (r.status === 429 ? "rate_limited" : "upstream_error")), detail: j.detail || "", http: r.status };
+  }
   return (await r.json()).result;
 }
 function errCopy(e) {
@@ -340,7 +344,13 @@ function errCopy(e) {
   if (c === "rate_limited") return "Too many requests right now. Wait a minute, then try again.";
   if (c === "prompt_too_large") return "That transcript is too long. Trim it to the part that matters and try again.";
   if (c === "refused") return "Claude couldn't write from this input. Try a different line.";
-  return "Couldn't finish writing. Try again.";
+  if (c === "missing_key") return "The site has no Anthropic API key. Add ANTHROPIC_API_KEY in Vercel, then redeploy.";
+  if (c === "bad_key") return "The Anthropic API key was rejected. Check ANTHROPIC_API_KEY in Vercel.";
+  if (c === "no_credit") return "The Anthropic account is out of credit. Add credit in the Anthropic Console.";
+  if (c === "bad_model") return "The writing model isn't available to this API key. (" + (e.detail || "model not found") + ")";
+  if (c === "overloaded") return "Claude is busy right now. Try again in a minute.";
+  if (c === "timeout") return "Writing took longer than the server allows. Try again; a shorter transcript also helps.";
+  return "Couldn't finish writing. Try again." + (c ? ` (${c}${e.http ? " " + e.http : ""}${e.detail ? ": " + String(e.detail).slice(0, 120) : ""})` : "");
 }
 
 const NO = `Never use: em dashes, "thrilled", "excited to share", "humbled", "game-changer", "delve", "unlock", "leverage", "in today's fast-paced world", "Here's the thing", "Let that sink in", "Agree?", emoji bullets. Never invent facts, names, numbers or quotes that are not in the transcript or the writer's line.`;
@@ -1255,7 +1265,11 @@ async function write() {
     let plan = null;
     try { plan = await ask(planPrompt(), { json: true }); } catch (e) { if (e && (e.code === "not_granted" || e.code === "sampling_disabled" || e.code === "rate_limited")) throw e; }
     stage = "Writing and editing your posts…"; render();
-    const [rx, rl] = await Promise.all([ask(xPrompt(plan), { json: true, tier: "complex" }), ask(liPrompt(plan), { json: true, tier: "complex" })]);
+    const askFinal = (pr) => ask(pr, { json: true, tier: "complex" }).catch(e => {
+      if (e && (e.code === "timeout" || e.code === "bad_model" || e.code === "overloaded")) return ask(pr, { json: true });
+      throw e;
+    });
+    const [rx, rl] = await Promise.all([askFinal(xPrompt(plan)), askFinal(liPrompt(plan))]);
     const x = (rx && Array.isArray(rx.x) ? rx.x : []).map(String).map(s => s.trim()).filter(Boolean).slice(0, 1);
     const li = rl && rl.linkedin ? String(rl.linkedin).trim() : "";
     if (!x.length || !li) throw { code: "invalid_json" };

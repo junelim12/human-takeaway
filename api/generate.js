@@ -22,7 +22,7 @@ function parseJson(text) {
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
-  if (!process.env.ANTHROPIC_API_KEY) return res.status(500).json({ error: "ANTHROPIC_API_KEY is not set" });
+  if (!process.env.ANTHROPIC_API_KEY) return res.status(500).json({ error: "missing_key", detail: "ANTHROPIC_API_KEY is not set in Vercel" });
 
   const ip = (req.headers["x-forwarded-for"] || "").split(",")[0] || "local";
   const hour = Math.floor(Date.now() / 3600e3);
@@ -49,12 +49,18 @@ export default async function handler(req, res) {
         messages: [{ role: "user", content: prompt }],
       }),
     });
-    if (!r.ok) return res.status(502).json({ error: "upstream_error", status: r.status });
+    if (!r.ok) {
+      // Pass a readable reason back so the page can say what went wrong.
+      let detail = "";
+      try { const j = await r.json(); detail = (j.error && j.error.message) || ""; } catch {}
+      const error = r.status === 401 ? "bad_key" : r.status === 404 ? "bad_model" : r.status === 429 ? "rate_limited" : r.status === 529 ? "overloaded" : r.status === 400 && /credit|billing/i.test(detail) ? "no_credit" : "upstream_error";
+      return res.status(r.status === 429 ? 429 : 502).json({ error, status: r.status, detail: detail.slice(0, 300) });
+    }
     const data = await r.json();
     const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
     const result = json ? parseJson(text) : text;
     return res.status(200).json({ result });
   } catch (e) {
-    return res.status(502).json({ error: String(e.message || e) });
+    return res.status(502).json({ error: e.message === "invalid_json" ? "invalid_json" : "upstream_error", detail: String(e.message || e).slice(0, 300) });
   }
 }
