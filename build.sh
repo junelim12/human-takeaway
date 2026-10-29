@@ -6,7 +6,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 mkdir -p public
 cp assets/favicon.svg assets/app-icon.svg public/
-printf 'window.HT_CONFIG = { supabaseUrl: "%s", supabaseAnonKey: "%s" };\n' "${SUPABASE_URL:-https://rzgxfjlkfngamtkxwtwb.supabase.co}" "${SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6Z3hmamxrZm5nYW10a3h3dHdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxNjc5OTUsImV4cCI6MjEwODc0Mzk5NX0.xSznE47hlxFN3eAZrZ_TM0Zz74MfKrTXXoYmHVpZH64}" > public/config.js
+printf 'window.HT_CONFIG = { supabaseUrl: "%s", supabaseAnonKey: "%s", googleClientId: "%s" };\n' "${SUPABASE_URL:-https://rzgxfjlkfngamtkxwtwb.supabase.co}" "${SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6Z3hmamxrZm5nYW10a3h3dHdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxNjc5OTUsImV4cCI6MjEwODc0Mzk5NX0.xSznE47hlxFN3eAZrZ_TM0Zz74MfKrTXXoYmHVpZH64}" "${GOOGLE_CLIENT_ID:-}" > public/config.js
 {
   printf '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n'
   printf '<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%%}[hidden]{display:none!important}</style>\n'

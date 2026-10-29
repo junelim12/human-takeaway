@@ -63,6 +63,8 @@ The Supabase project is already set up with the `lines` table and row-level secu
    Then Supabase → Authentication → Providers → Google: enable it and paste the client ID and secret.
 2. **Your domain.** Once the site has a URL, add it under Authentication → URL Configuration (Site URL and redirect allow list).
 
+**Show your own site on Google's sign-in screen.** Set `GOOGLE_CLIENT_ID` in Vercel to the OAuth client ID. The site then uses Google's own sign-in button and passes the ID token to Supabase, so Google shows this site's address instead of `…supabase.co`. Also add the site's address to the client's **Authorized JavaScript origins** in Google Cloud, and the same client ID to **Authorized Client IDs** in Supabase → Authentication → Providers → Google. Without `GOOGLE_CLIENT_ID`, sign-in uses Supabase's redirect.
+
 To use a different Supabase project, run `supabase/schema.sql` there and set `SUPABASE_URL` and `SUPABASE_ANON_KEY`.
 
 ## Deploying to your site (Vercel)

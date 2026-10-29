@@ -721,10 +721,46 @@ function accountUI() {
   else if (Store.configured) { b.hidden = false; b.textContent = "sign in"; b.title = "Sign in with Google to keep your lines"; }
   else b.hidden = true;
 }
+/* Google sign-in. With a Google client ID configured, Google's own button signs people in on this
+   page, so Google shows this site's address and the app name; the ID token is then handed to Supabase.
+   Without one, it falls back to Supabase's redirect flow (Google then shows the supabase.co address). */
+async function sha256hex(t) { const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, "0")).join(""); }
+let gisReady = null;
+function loadGis() { return gisReady ||= loadScript("https://accounts.google.com/gsi/client"); }
 async function onAccountClick() {
   if (!Store.sb) return;
   if (Store.kind === "supabase") { await Store.sb.auth.signOut(); return; }
-  await Store.sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin + location.pathname } });
+  const clientId = (window.HT_CONFIG || {}).googleClientId;
+  if (!clientId) { await Store.sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin + location.pathname } }); return; }
+  const root = $("#modal-root");
+  root.innerHTML = `<div class="modal-bg" id="signin-bg"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="signin-title">
+    <h2 id="signin-title">Sign in</h2>
+    <p class="hint">Keep your lines across devices and post to the Feed.</p>
+    <div id="gbtn" style="min-height:44px">Loading Google…</div>
+    <p class="hint" id="signin-msg"></p>
+    <div class="sec" style="justify-content:flex-end"><button class="btn" type="button" id="signin-x">Cancel</button></div>
+  </div></div>`;
+  const close = () => { root.innerHTML = ""; };
+  $("#signin-x").onclick = close;
+  $("#signin-bg").addEventListener("click", (e) => { if (e.target.id === "signin-bg") close(); });
+  try {
+    await loadGis();
+    const raw = crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now();
+    google.accounts.id.initialize({
+      client_id: clientId, nonce: await sha256hex(raw), ux_mode: "popup", context: "signin",
+      callback: async (resp) => {
+        $("#signin-msg") && ($("#signin-msg").textContent = "Signing in…");
+        const { error } = await Store.sb.auth.signInWithIdToken({ provider: "google", token: resp.credential, nonce: raw });
+        if (error) { $("#signin-msg") && ($("#signin-msg").textContent = "Couldn't sign in: " + error.message); return; }
+        close(); // onAuthStateChange reloads the page signed in
+      }
+    });
+    $("#gbtn").textContent = "";
+    const dark = document.documentElement.getAttribute("data-theme") === "dark" || (!document.documentElement.getAttribute("data-theme") && darkMQ && darkMQ.matches);
+    google.accounts.id.renderButton($("#gbtn"), { type: "standard", theme: dark ? "filled_black" : "outline", size: "large", text: "continue_with", shape: "pill", width: 300 });
+  } catch {
+    $("#gbtn").textContent = "Google sign-in didn't load. Check your connection and try again.";
+  }
 }
 
 /* ---------------- feed + profiles ----------------
