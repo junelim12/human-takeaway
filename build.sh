@@ -10,7 +10,8 @@ printf 'window.HT_CONFIG = { supabaseUrl: "%s", supabaseAnonKey: "%s" };\n' "${S
 {
   printf '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n'
   printf '<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%%}[hidden]{display:none!important}</style>\n'
-  printf '<link rel="icon" type="image/svg+xml" href="favicon.svg">\n<link rel="apple-touch-icon" href="app-icon.svg">\n<script src="config.js"></script>\n</head>\n<body>\n'
+  printf '<meta name="color-scheme" content="light dark">\n<meta name="theme-color" content="#e9e9e7" media="(prefers-color-scheme: light)">\n<meta name="theme-color" content="#0b0b0b" media="(prefers-color-scheme: dark)">\n<script>try{var t=localStorage.getItem("ht.theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>\n'
+printf '<link rel="icon" type="image/svg+xml" href="favicon.svg">\n<link rel="apple-touch-icon" href="app-icon.svg">\n<script src="config.js"></script>\n</head>\n<body>\n'
   cat src/app.html
   printf '\n</body>\n</html>\n'
 } > public/index.html

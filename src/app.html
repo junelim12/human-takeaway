@@ -16,16 +16,17 @@
   --line: #e3e3df;
   --btn: #161616;
   --btn-ink: #ffffff;
+  --hl: rgba(255,255,255,.4);
   --sans: "Geist", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --mono: "Geist Mono", ui-monospace, Menlo, Consolas, monospace;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --page: #0b0b0b; --sheet: #141414; --panel: #1c1c1c; --panel-2: #262626; --ink: #f1f1ee; --muted: #9b9b96; --faint: #4d4d4a; --line: #2a2a2a; --btn: #f1f1ee; --btn-ink: #111111; color-scheme: dark;
+    --page: #0b0b0b; --sheet: #141414; --panel: #1c1c1c; --panel-2: #262626; --ink: #f1f1ee; --muted: #9b9b96; --faint: #4d4d4a; --line: #2a2a2a; --btn: #f1f1ee; --btn-ink: #111111; --hl: rgba(255,255,255,.03); color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --page: #0b0b0b; --sheet: #141414; --panel: #1c1c1c; --panel-2: #262626; --ink: #f1f1ee; --muted: #9b9b96; --faint: #4d4d4a; --line: #2a2a2a; --btn: #f1f1ee; --btn-ink: #111111; color-scheme: dark;
+  --page: #0b0b0b; --sheet: #141414; --panel: #1c1c1c; --panel-2: #262626; --ink: #f1f1ee; --muted: #9b9b96; --faint: #4d4d4a; --line: #2a2a2a; --btn: #f1f1ee; --btn-ink: #111111; --hl: rgba(255,255,255,.03); color-scheme: dark;
 }
 * { box-sizing: border-box; }
 body { background: var(--page); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
@@ -86,7 +87,7 @@ button { cursor: pointer; }
 .note { font-size: 13px; color: var(--muted); }
 
 /* inset (like the duration box) */
-.inset { background: color-mix(in srgb, var(--sheet) 55%, var(--panel)); border: 1px solid var(--line); border-radius: 22px; padding: 22px 28px; display: grid; gap: 8px; box-shadow: 0 1px 0 rgba(255,255,255,.4) inset; }
+.inset { background: color-mix(in srgb, var(--sheet) 55%, var(--panel)); border: 1px solid var(--line); border-radius: 22px; padding: 22px 28px; display: grid; gap: 8px; box-shadow: 0 1px 0 var(--hl) inset; }
 @media (max-width: 560px) { .inset { padding: 16px 18px; border-radius: 18px; } }
 .inset-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap; }
 .oneliner { width: 100%; border: 0; background: transparent; font-size: clamp(22px, 2.8vw, 34px); font-weight: 300; letter-spacing: -.02em; padding: 4px 0; resize: none; line-height: 1.2; min-height: 1.4em; overflow: hidden; }
@@ -101,7 +102,7 @@ button { cursor: pointer; }
 .card h3 { font-size: 22px; font-weight: 500; letter-spacing: -.02em; }
 .card .lead { color: var(--muted); font-size: 15px; font-weight: 300; }
 .steps { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
-.steps li { display: grid; grid-template-columns: 26px 1fr; gap: 10px; align-items: baseline; color: var(--muted); }
+.steps li { display: grid; grid-template-columns: 40px 1fr; gap: 10px; align-items: baseline; color: var(--muted); }
 .steps li b { font-family: var(--mono); font-weight: 400; font-size: 12px; color: var(--ink); }
 .steps li.done { color: var(--ink); }
 .steps li.done b::before { content: "✓ "; }
@@ -226,6 +227,7 @@ button { cursor: pointer; }
         <button class="pill" id="how" type="button" aria-expanded="false">how it works <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3 4.5 6 7.5 9 4.5"/></svg></button>
         <button class="pill" id="restart" type="button">new upload</button>
         <button class="pill" id="acct" type="button" hidden>sign in</button>
+        <button class="pill" id="theme" type="button" hidden aria-label="Theme">system</button>
       </div>
     </header>
     <main class="grid" id="main"></main>
@@ -1053,6 +1055,25 @@ $("#restart").addEventListener("click", () => { const role = S.role, lib = S.lib
 function tick() { const d = new Date(); let h = d.getHours(); const ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12; $("#clock").innerHTML = `${String(h).padStart(2, "0")}.${String(d.getMinutes()).padStart(2, "0")}<small>${ap}</small>`; }
 tick(); setInterval(tick, 15000);
 window.addEventListener("resize", drawWave);
+/* theme: follows the device by default; on our own site people can pin light or dark.
+   Inside a Claude viewer the host sets data-theme, so the switch stays hidden there. */
+const THEME_KEY = "ht.theme", THEMES = ["system", "light", "dark"];
+function readTheme() { try { const t = localStorage.getItem(THEME_KEY); return THEMES.includes(t) ? t : "system"; } catch { return "system"; } }
+function applyTheme(t) {
+  const r = document.documentElement;
+  if (t === "light" || t === "dark") r.setAttribute("data-theme", t); else r.removeAttribute("data-theme");
+  const b = $("#theme"); b.textContent = t; b.title = t === "system" ? "Following your device setting" : `Always ${t}`;
+  requestAnimationFrame(drawWave);
+}
+if (!inArtifact()) {
+  $("#theme").hidden = false;
+  applyTheme(readTheme());
+  $("#theme").addEventListener("click", () => {
+    const next = THEMES[(THEMES.indexOf(readTheme()) + 1) % THEMES.length];
+    try { localStorage.setItem(THEME_KEY, next); } catch {}
+    applyTheme(next); toast(next === "system" ? "Following your device setting" : `Theme: ${next}`);
+  });
+}
 window.matchMedia && matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", drawWave);
 
 // First visit: open the guide so the page explains itself
