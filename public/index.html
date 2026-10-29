@@ -275,7 +275,8 @@ let stage = "", busy = false, error = "", guideOpen = false, pasting = false, re
 const ROLES = {
   job: { t: "Job seeker", h: "Show how you think, so hiring managers notice.", angle: "a job seeker. The posts should show sharp domain thinking and curiosity a hiring manager would notice. Never beg for a job and never say 'open to work'." },
   mkt: { t: "Marketer", h: "Put the spotlight on the company or product behind the event.", angle: "a marketer whose job is to get attention on the company or product in the spotlight (see SPOTLIGHT). The writer's line is the angle; the company or product is the subject. Name it naturally, show one concrete thing it lets people do or one result from the transcript, and make clear why that matters right now. Sound like a credible insider or excited user, not an ad: no slogans, no superlatives that the transcript doesn't back up. A short, light call to try or look at it is welcome at the end. Only claim features, customers and results that the transcript or the line states." },
-  founder: { t: "Founder", h: "Earn trust with a clear take, without pitching.", angle: "a founder. The posts should take a clear position tied to what they are building, earning trust from customers, hires and investors, without pitching the product." }
+  founder: { t: "Founder", h: "Earn trust with a clear take, without pitching.", angle: "a founder. The posts should take a clear position tied to what they are building, earning trust from customers, hires and investors, without pitching the product." },
+  builder: { t: "Builder", h: "Turn what you heard into what you'd build or ship.", angle: "a builder: an engineer, designer or indie hacker who makes things. The posts connect the line to the craft: what it changes about how they would build, ship, debug or pick tools. Practical and hands-on, written from the workbench, not the stage. Mention a concrete technique, tradeoff or tool only if the transcript supports it. No product pitch." }
 };
 
 /* ---------------- Claude ---------------- */
@@ -374,7 +375,7 @@ Decide how to use it:
 
 function ctaRule() {
   if (!S.cta) return "ENDING: No call to action and no question to readers. Do not ask what they think, and do not tell them to try, follow, comment, DM or reach out. End on the writer's own last thought.";
-  const fit = { job: "an open door to talk with people working on this", mkt: "a light nudge to try or look at the product", founder: "an invitation to people who care about this problem" }[S.role] || "a light, natural next step";
+  const fit = { job: "an open door to talk with people working on this", mkt: "a light nudge to try or look at the product", founder: "an invitation to people who care about this problem", builder: "an open invite to compare notes with others building the same kind of thing" }[S.role] || "a light, natural next step";
   return `ENDING: Close with one short, natural call to action: ${fit}. One line, never pushy. No "Agree?", "Thoughts?" or engagement bait. On X, keep it to a few words or fold it into the post.`;
 }
 

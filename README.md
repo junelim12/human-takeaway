@@ -4,7 +4,7 @@
 
 Upload a recording or transcript of a talk, panel or meeting, type the one line that stayed with you, and get an X post and a LinkedIn post built around your own words. Every line you write is kept and tagged by industry and function, so over time it becomes a record of what you have learned.
 
-Built for people in the Bay Area startup scene (job seekers, marketers, founders) who go to a lot of events and want to post about them consistently without sounding like AI.
+Built for people in the Bay Area startup scene (job seekers, marketers, founders, builders) who go to a lot of events and want to post about them consistently without sounding like AI.
 
 ## How it works
 
@@ -13,6 +13,7 @@ Built for people in the Bay Area startup scene (job seekers, marketers, founders
    - **Job seeker**: shows how you think, so hiring managers notice.
    - **Marketer**: puts the spotlight on the company or product behind the event (most Bay Area events exist to promote the host or the companies it features). Names the product and shows one concrete thing it does.
    - **Founder**: takes a clear position tied to what they are building, earning trust from customers, hires and investors, without pitching the product.
+   - **Builder**: for engineers, designers and indie hackers. Connects the line to the craft: what it changes about how you build, ship or pick tools.
    - For Marketer, you can name the company or product to spotlight. Left blank, the host or the most-discussed company in the transcript is used.
 3. **Type your one line** (up to 140 characters). Pasting is disabled in this field on purpose: the line has to be written by you, and everything else is built around it.
 4. **Name the event and tag it**: type the event name however you call it. The posts judge how to use it: a recognizable public name may be mentioned once, while a private label (dates, abbreviations) is turned into a natural description instead of being copied. Industry and function tags are suggested from the transcript and can be changed.

@@ -8,7 +8,7 @@ create table if not exists public.lines (
   event_title  text not null default '',
   industries   text[] not null default '{}',
   functions    text[] not null default '{}',
-  role         text not null default 'job' check (role in ('job', 'mkt', 'founder')),
+  role         text not null default 'job' check (role in ('job', 'mkt', 'founder', 'builder')),
   source_name  text not null default '',
   posts        jsonb,
   visibility   text not null default 'private' check (visibility in ('private', 'public')),
