@@ -62,10 +62,18 @@ button { cursor: pointer; }
 .clock small { font-size: 14px; color: var(--muted); margin-left: 4px; }
 .brand { display: flex; align-items: center; gap: 10px; font-size: 22px; font-weight: 500; letter-spacing: -.02em; }
 .brand .mark { height: 30px; width: auto; flex: none; }
-.bar-r { display: flex; gap: 10px; flex-wrap: wrap; }
+.bar-r { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .pill { border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 9px 20px; color: var(--muted); font-size: 15px; display: inline-flex; align-items: center; gap: 8px; }
 .pill:hover { color: var(--ink); }
 .pill svg { width: 12px; height: 12px; }
+.bar-sep { width: 1px; align-self: stretch; margin: 6px 2px; background: var(--line); }
+.iconbtn { width: 42px; height: 42px; flex: none; border-radius: 50%; border: 1px solid var(--line); background: var(--sheet); color: var(--ink); display: inline-grid; place-items: center; padding: 0; }
+.iconbtn:hover { border-color: var(--ink); }
+.iconbtn svg { width: 20px; height: 20px; grid-area: 1 / 1; transition: opacity .2s, transform .3s; }
+.iconbtn .ico-sun { opacity: 0; transform: rotate(-45deg) scale(.7); }
+.iconbtn.is-dark .ico-sun { opacity: 1; transform: none; }
+.iconbtn.is-dark .ico-moon { opacity: 0; transform: rotate(45deg) scale(.7); }
+@media (prefers-reduced-motion: reduce) { .iconbtn svg { transition: none; } }
 @media (max-width: 560px) { .clock { display: none; } .pill { padding: 7px 14px; font-size: 14px; } }
 
 /* main grid */
@@ -266,7 +274,8 @@ button { cursor: pointer; }
         <button class="pill" id="how" type="button" aria-expanded="false">how it works <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3 4.5 6 7.5 9 4.5"/></svg></button>
         <button class="pill" id="restart" type="button">new upload</button>
         <button class="pill" id="acct" type="button" hidden>sign in</button>
-        <button class="pill" id="theme" type="button" hidden aria-label="Theme">system</button>
+        <span class="bar-sep" id="theme-sep" hidden aria-hidden="true"></span>
+        <button class="iconbtn" id="theme" type="button" hidden aria-label="Switch to dark mode"><svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"></path></svg><svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"></path></svg></button>
       </div>
     </header>
     <main class="grid" id="main"></main>
@@ -1276,22 +1285,30 @@ tick(); setInterval(tick, 15000);
 window.addEventListener("resize", drawWave);
 /* theme: follows the device by default; on our own site people can pin light or dark.
    Inside a Claude viewer the host sets data-theme, so the switch stays hidden there. */
-const THEME_KEY = "ht.theme", THEMES = ["system", "light", "dark"];
-function readTheme() { try { const t = localStorage.getItem(THEME_KEY); return THEMES.includes(t) ? t : "system"; } catch { return "system"; } }
-function applyTheme(t) {
-  const r = document.documentElement;
-  if (t === "light" || t === "dark") r.setAttribute("data-theme", t); else r.removeAttribute("data-theme");
-  const b = $("#theme"); b.textContent = t; b.title = t === "system" ? "Following your device setting" : `Always ${t}`;
+const THEME_KEY = "ht.theme";
+const darkMQ = window.matchMedia ? matchMedia("(prefers-color-scheme: dark)") : null;
+function savedTheme() { try { const t = localStorage.getItem(THEME_KEY); return t === "light" || t === "dark" ? t : null; } catch { return null; } }
+function effectiveTheme() { return savedTheme() || (darkMQ && darkMQ.matches ? "dark" : "light"); }
+function applyTheme() {
+  const t = savedTheme(), r = document.documentElement;
+  if (t) r.setAttribute("data-theme", t); else r.removeAttribute("data-theme");
+  const dark = effectiveTheme() === "dark", b = $("#theme");
+  b.classList.toggle("is-dark", dark);
+  b.setAttribute("aria-label", dark ? "Switch to light mode" : "Switch to dark mode");
+  b.title = dark ? "Light mode" : "Dark mode";
   requestAnimationFrame(drawWave);
 }
 if (!inArtifact()) {
-  $("#theme").hidden = false;
-  applyTheme(readTheme());
+  $("#theme").hidden = false; $("#theme-sep").hidden = false;
+  applyTheme();
   $("#theme").addEventListener("click", () => {
-    const next = THEMES[(THEMES.indexOf(readTheme()) + 1) % THEMES.length];
-    try { localStorage.setItem(THEME_KEY, next); } catch {}
-    applyTheme(next); toast(next === "system" ? "Following your device setting" : `Theme: ${next}`);
+    const next = effectiveTheme() === "dark" ? "light" : "dark";
+    // Picking the device's own mode clears the override, so the site follows the device again.
+    const deviceMode = darkMQ && darkMQ.matches ? "dark" : "light";
+    try { if (next === deviceMode) localStorage.removeItem(THEME_KEY); else localStorage.setItem(THEME_KEY, next); } catch {}
+    applyTheme();
   });
+  darkMQ && darkMQ.addEventListener && darkMQ.addEventListener("change", () => { if (!savedTheme()) applyTheme(); });
 }
 window.matchMedia && matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", drawWave);
 
