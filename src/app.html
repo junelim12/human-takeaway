@@ -210,6 +210,29 @@ button { cursor: pointer; }
 .switch input:focus-visible + i { outline: 2px solid var(--ink); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .switch i, .switch i::after { transition: none; } }
 
+/* feed */
+.pill[aria-pressed="true"] { color: var(--ink); border-color: var(--ink); }
+.fcs { display: grid; }
+.fc { padding: 26px 0; border-top: 1px solid var(--line); display: grid; gap: 12px; }
+.fc:first-child { border-top: 0; padding-top: 4px; }
+.fc-ev { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; font-size: 13px; color: var(--muted); }
+.fc-evname { background: none; border: 0; padding: 0; font-weight: 600; color: var(--ink); text-decoration: underline; text-decoration-color: var(--faint); text-underline-offset: 3px; letter-spacing: .01em; }
+.fc-evname:hover { text-decoration-color: var(--ink); }
+.fc-sum { min-width: 0; }
+.fc-line { font-size: clamp(22px, 2.6vw, 30px); font-weight: 300; letter-spacing: -.02em; line-height: 1.25; text-wrap: balance; overflow-wrap: anywhere; }
+.fc-by { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 13px; color: var(--muted); align-items: baseline; }
+.fc-name { font-weight: 500; color: var(--ink); }
+.fc-bio { min-width: 0; }
+.fc-when::before { content: "· "; }
+.evlist { display: grid; gap: 2px; }
+.evrow { display: flex; justify-content: space-between; gap: 10px; text-align: left; background: none; border: 0; border-radius: 10px; padding: 8px 10px; margin: 0 -10px; color: var(--ink); }
+.evrow:hover, .evrow[aria-pressed="true"] { background: var(--panel); }
+.evrow .num { color: var(--muted); }
+.modal-bg { position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,.45); display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.modal { width: min(440px, 100%); background: var(--sheet); color: var(--ink); border-radius: 24px; padding: 28px; display: grid; gap: 14px; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+.modal h2 { font-size: 22px; font-weight: 500; letter-spacing: -.02em; }
+.btn.primary { background: var(--btn); color: var(--btn-ink); border-color: var(--btn); }
+
 .toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--btn); color: var(--btn-ink); padding: 10px 18px; border-radius: 999px; font-size: 14px; z-index: 30; max-width: calc(100% - 32px); }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .guide { display: grid; gap: 10px; }
@@ -223,6 +246,7 @@ button { cursor: pointer; }
         <div class="brand"><svg class="mark" viewBox="-20 10 900 1080" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="64" stroke-linecap="round" stroke-linejoin="round"><path d="M285 60 C270 300 220 550 150 1030"></path><path d="M815 425 L490 452 C400 466 150 540 48 588 C18 604 60 626 120 626 C262 626 420 584 490 455"></path><path d="M818 112 C838 125 836 150 815 162 C745 200 695 270 676 370 C656 480 630 650 597 830 C585 650 582 480 600 360 C620 240 690 160 778 110 C792 102 808 104 818 112 Z" fill="currentColor" stroke-width="16"></path><path d="M598 873 Q614 962 680 978 Q614 994 598 1083 Q582 994 516 978 Q582 962 598 873 Z" fill="currentColor" stroke="none"></path></svg>Human Takeaway</div>
       </div>
       <div class="bar-r">
+        <button class="pill" id="feedbtn" type="button">feed</button>
         <button class="pill" id="lib" type="button">my lines <span class="num" id="lib-n"></span></button>
         <button class="pill" id="how" type="button" aria-expanded="false">how it works <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3 4.5 6 7.5 9 4.5"/></svg></button>
         <button class="pill" id="restart" type="button">new upload</button>
@@ -234,6 +258,7 @@ button { cursor: pointer; }
   </div>
 </div>
 <input type="file" id="file" class="sr" accept=".txt,.md,.srt,.vtt,text/plain,audio/*,.m4a,.mp3,.wav,.webm,.ogg">
+<div id="modal-root"></div>
 <div id="toast-root" aria-live="polite"></div>
 
 <script>
@@ -247,7 +272,7 @@ const KEY = "debrief.v2";
 const INDUSTRIES = ["AI / ML", "Fintech", "Climate", "Health", "Consumer", "B2B SaaS", "Dev tools", "Crypto", "Hardware", "Media"];
 const FUNCTIONS = ["Product", "Engineering", "Design", "Marketing", "Sales / GTM", "Founding", "Investing", "Ops / People"];
 const blankMeta = () => ({ event: "", industries: [], functions: [], suggested: false });
-const blank = () => ({ role: "job", company: "", cta: false, source: null, takeaway: "", typed: false, meta: blankMeta(), out: null, tab: "x", lib: null });
+const blank = () => ({ role: "job", company: "", cta: false, toFeed: false, source: null, takeaway: "", typed: false, meta: blankMeta(), out: null, tab: "x", lib: null });
 const exampleLib = () => {
   const d = (n) => Date.now() - n * 86400e3;
   return [
@@ -407,10 +432,11 @@ STEP 2. SUPPORT. Find at most 2 details that directly prove or sharpen THAT clai
 Zero details is a fine answer. Most strong posts use one.
 
 STEP 3. SPINE. Outline the post as 2 to 5 beats. Each beat must follow from the previous one, and every beat must serve the thesis. No beat that only adds color.
+EVENT SUMMARY. Separately, write one neutral line (under 90 characters) saying what the event or session was about, for someone who was not there: the topic and the kind of event, like "A panel on how forward-deployed engineers work with enterprise customers." Never copy dates, internal labels or abbreviations; never name people.
 ${mkt ? "\nSTEP 4. SPOTLIGHT. Name the company or product in the spotlight and the one concrete thing about it (from the transcript) that connects to the thesis." : ""}
 
 Reply with only JSON:
-{"thesis":"","why_it_matters":"","support":[{"detail":"","said_by":"","how_it_proves_the_thesis":""}],"rejected":["vivid details you chose NOT to use, and why, briefly"],"spine":["beat 1","beat 2"]${mkt ? ',"spotlight":{"name":"","concrete_thing":""}' : ""}}`;
+{"event_summary":"","thesis":"","why_it_matters":"","support":[{"detail":"","said_by":"","how_it_proves_the_thesis":""}],"rejected":["vivid details you chose NOT to use, and why, briefly"],"spine":["beat 1","beat 2"]${mkt ? ',"spotlight":{"name":"","concrete_thing":""}' : ""}}`;
 }
 
 function planText(plan) {
@@ -585,7 +611,7 @@ async function takeFile(f) {
    supabase: own site, Google sign-in, rows in the `lines` table (see supabase/schema.sql)
    local:    signed out or not configured, this browser only */
 const Store = { kind: "local", uid: null, db: null, sb: null, email: "", configured: false };
-const toRow = (x) => ({ id: x.id, line: x.line, event: x.event || "", industries: x.industries || [], functions: x.functions || [], role: x.role || "job", sourceName: x.sourceName || "", at: x.at, out: x.out || null, visibility: x.visibility || "private" });
+const toRow = (x) => ({ id: x.id, line: x.line, event: x.event || "", industries: x.industries || [], functions: x.functions || [], role: x.role || "job", sourceName: x.sourceName || "", at: x.at, out: x.out || null, visibility: x.visibility || "private", eventSummary: x.eventSummary || "" });
 const newId = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
 
 const remote = {
@@ -597,7 +623,7 @@ const remote = {
     if (Store.kind === "supabase") {
       const { data, error } = await Store.sb.from("lines").select("*").order("created_at", { ascending: false });
       if (error) throw error;
-      return data.map(r => ({ id: r.id, line: r.line, event: r.event_title || "", industries: r.industries || [], functions: r.functions || [], role: r.role, sourceName: r.source_name || "", at: new Date(r.created_at).getTime(), out: r.posts, visibility: r.visibility }));
+      return data.map(r => ({ id: r.id, line: r.line, event: r.event_title || "", industries: r.industries || [], functions: r.functions || [], role: r.role, sourceName: r.source_name || "", at: new Date(r.created_at).getTime(), out: r.posts, visibility: r.visibility, eventSummary: r.event_summary || "" }));
     }
     return null;
   },
@@ -605,7 +631,7 @@ const remote = {
     const r = toRow(x);
     if (Store.kind === "artifact") { const { id, ...rest } = r; await Store.db.collection("data/users/" + Store.uid).doc(id).set(rest); }
     if (Store.kind === "supabase") {
-      const { error } = await Store.sb.from("lines").insert({ id: r.id, line: r.line, event_title: r.event, industries: r.industries, functions: r.functions, role: r.role, source_name: r.sourceName, created_at: new Date(r.at).toISOString(), posts: r.out, visibility: r.visibility });
+      const { error } = await Store.sb.from("lines").insert({ id: r.id, line: r.line, event_title: r.event, industries: r.industries, functions: r.functions, role: r.role, source_name: r.sourceName, created_at: new Date(r.at).toISOString(), posts: r.out, visibility: r.visibility, event_summary: (r.eventSummary || "").slice(0, 200) });
       if (error) throw error;
     }
   },
@@ -665,6 +691,180 @@ async function onAccountClick() {
   if (!Store.sb) return;
   if (Store.kind === "supabase") { await Store.sb.auth.signOut(); return; }
   await Store.sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin + location.pathname } });
+}
+
+/* ---------------- feed + profiles ----------------
+   artifact: people/<uid> = profile, people/<uid>/posts/<id> = feed post (each person writes only their own)
+   supabase: profiles + feed_posts tables (anyone reads, each person writes their own) */
+const evKey = (t) => (t || "").trim().replace(/\s+/g, " ").toLowerCase();
+const pendingAdds = new Map();
+const Feed = {
+  me: null, meLoaded: false, items: null, loading: false, error: "", event: null,
+  canRead() { return Store.kind === "artifact" || !!Store.sb; },
+  canPost() { return Store.kind === "artifact" || Store.kind === "supabase"; },
+  async loadMe() {
+    if (this.meLoaded || !this.canPost()) return this.me;
+    try {
+      if (Store.kind === "artifact") { const d = await Store.db.doc("people/" + Store.uid).get(); this.me = d.exists ? d.data() : null; }
+      else { const { data } = await Store.sb.from("profiles").select("name,bio").eq("user_id", Store.uid).maybeSingle(); this.me = data || null; }
+      this.meLoaded = true;
+    } catch {}
+    return this.me;
+  },
+  async saveMe(p) {
+    const clean = { name: p.name.trim().slice(0, 50), bio: p.bio.trim().slice(0, 160) };
+    if (Store.kind === "artifact") await Store.db.doc("people/" + Store.uid).set({ ...clean, updatedAt: Date.now() });
+    else { const { error } = await Store.sb.from("profiles").upsert({ user_id: Store.uid, ...clean, updated_at: new Date().toISOString() }); if (error) throw error; }
+    this.me = clean; this.meLoaded = true;
+    if (this.items) this.items.forEach(it => { if (it.uid === Store.uid) { it.name = clean.name; it.bio = clean.bio; } });
+  },
+  async list() {
+    if (Store.kind === "artifact") {
+      const people = await Store.db.collection("people").get();
+      const out = [];
+      await Promise.all(people.docs.map(async (p) => {
+        const prof = p.data() || {};
+        const posts = await Store.db.collection(`people/${p.id}/posts`).get();
+        posts.docs.forEach(d => { const x = d.data() || {}; out.push({ id: d.id, uid: p.id, line: String(x.line || ""), event: String(x.event || ""), eventSummary: String(x.eventSummary || ""), at: Number(x.at) || 0, name: String(prof.name || ""), bio: String(prof.bio || "") }); });
+      }));
+      return out.filter(x => x.line).sort((a, b) => b.at - a.at);
+    }
+    const { data, error } = await Store.sb.from("feed_posts").select("id,user_id,line,event_title,event_summary,created_at").order("created_at", { ascending: false }).limit(300);
+    if (error) throw error;
+    const ids = [...new Set(data.map(r => r.user_id))];
+    const profs = {};
+    if (ids.length) { const { data: ps } = await Store.sb.from("profiles").select("user_id,name,bio").in("user_id", ids); (ps || []).forEach(p => profs[p.user_id] = p); }
+    return data.map(r => ({ id: r.id, uid: r.user_id, line: r.line, event: r.event_title || "", eventSummary: r.event_summary || "", at: new Date(r.created_at).getTime(), name: (profs[r.user_id] || {}).name || "", bio: (profs[r.user_id] || {}).bio || "" }));
+  },
+  async add(entry) {
+    const post = { line: entry.line, event: entry.event || "", eventSummary: entry.eventSummary || "", at: Date.now() };
+    if (Store.kind === "artifact") await Store.db.doc(`people/${Store.uid}/posts/${entry.id}`).set(post);
+    else {
+      await (pendingAdds.get(entry.id) || Promise.resolve());
+      const { error } = await Store.sb.from("feed_posts").insert({ id: entry.id, line: post.line, event_title: post.event.slice(0, 80), event_summary: post.eventSummary.slice(0, 200) });
+      if (error) throw error;
+    }
+    if (this.items) this.items.unshift({ id: entry.id, uid: Store.uid, ...post, name: this.me?.name || "", bio: this.me?.bio || "" });
+  },
+  async remove(id) {
+    if (Store.kind === "artifact") await Store.db.doc(`people/${Store.uid}/posts/${id}`).delete();
+    else { const { error } = await Store.sb.from("feed_posts").delete().eq("id", id); if (error) throw error; }
+    if (this.items) this.items = this.items.filter(x => x.id !== id);
+  }
+};
+
+async function refreshFeed() {
+  if (!Feed.canRead()) return;
+  Feed.loading = true; Feed.error = ""; if (mode === "feed") render();
+  try { Feed.items = await Feed.list(); } catch { Feed.error = "Couldn't load the Feed. Try again in a moment."; }
+  Feed.loading = false; if (mode === "feed") render();
+}
+
+function askProfile(title) {
+  return new Promise((resolve) => {
+    const root = $("#modal-root"), me = Feed.me || { name: "", bio: "" };
+    root.innerHTML = `<div class="modal-bg"><form class="modal" id="prof-form" role="dialog" aria-modal="true" aria-labelledby="prof-title">
+      <h2 id="prof-title">${esc(title || "Your Feed profile")}</h2>
+      <p class="hint">Shown next to your lines on the Feed.</p>
+      <div class="field"><label for="prof-name" class="hint">Name</label><input id="prof-name" type="text" maxlength="50" required value="${esc(me.name)}" placeholder="June Lim"></div>
+      <div class="field"><label for="prof-bio" class="hint">Bio</label><input id="prof-bio" type="text" maxlength="160" value="${esc(me.bio)}" placeholder="PM in SF. Writing about AI infra and dev tools."><span class="hint" id="prof-n">${me.bio.length}/160</span></div>
+      <div class="sec" style="justify-content:flex-end"><button class="btn" type="button" id="prof-cancel">Cancel</button><button class="btn primary" type="submit" id="prof-save">Save</button></div>
+    </form></div>`;
+    const close = (v) => { root.innerHTML = ""; document.removeEventListener("keydown", onKey); resolve(v); };
+    const onKey = (e) => { if (e.key === "Escape") close(null); };
+    document.addEventListener("keydown", onKey);
+    $("#prof-cancel").onclick = () => close(null);
+    $("#prof-bio").oninput = (e) => { $("#prof-n").textContent = e.target.value.length + "/160"; };
+    $("#prof-form").onsubmit = async (e) => {
+      e.preventDefault();
+      const name = $("#prof-name").value.trim(); if (!name) { $("#prof-name").focus(); return; }
+      $("#prof-save").disabled = true;
+      try { await Feed.saveMe({ name, bio: $("#prof-bio").value }); close(Feed.me); }
+      catch { $("#prof-save").disabled = false; toast("Couldn't save your profile. Try again."); }
+    };
+    setTimeout(() => $("#prof-name")?.focus(), 30);
+  });
+}
+
+async function postToFeed(entry, quiet) {
+  if (!Feed.canPost()) { toast(Store.configured ? "Sign in to post to the Feed" : "The Feed needs an account"); return false; }
+  await Feed.loadMe();
+  if (!Feed.me || !Feed.me.name) { const p = await askProfile("Set up your Feed profile"); if (!p) return false; }
+  try {
+    await Feed.add(entry);
+    entry.visibility = "public"; save(); persist(remote.update(entry.id, { visibility: "public" }));
+    if (!quiet) toast("Posted to the Feed");
+    if (mode === "library" || mode === "feed") render();
+    return true;
+  } catch { toast("Couldn't post to the Feed. Try again."); return false; }
+}
+async function removeFromFeed(entry) {
+  try {
+    await Feed.remove(entry.id);
+    entry.visibility = "private"; save(); persist(remote.update(entry.id, { visibility: "private" }));
+    toast("Removed from the Feed"); render();
+  } catch { toast("Couldn't remove it. Try again."); }
+}
+
+function feedSwitch(id) {
+  return `<label class="switch" for="${id}"><span><span class="t">Post to Feed</span><br><span class="hint">${S.toFeed ? "Your line and the event go to the Feed with your name." : "Off: your line stays private."}</span></span><input type="checkbox" role="switch" id="${id}" data-tofeed ${S.toFeed ? "checked" : ""} ${busy ? "disabled" : ""}><i aria-hidden="true"></i></label>`;
+}
+
+function feedCard(x, withEvent) {
+  const when = new Date(x.at).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const evTitle = x.event.trim();
+  const head = withEvent && (evTitle || x.eventSummary)
+    ? `<div class="fc-ev">${evTitle ? `<button class="fc-evname" type="button" data-ev="${esc(evKey(evTitle))}">${esc(evTitle)}</button>` : ""}${x.eventSummary ? `<span class="fc-sum">${esc(x.eventSummary)}</span>` : ""}</div>` : "";
+  return `<article class="fc">${head}<p class="fc-line">“${esc(x.line)}”</p>
+    <div class="fc-by"><span class="fc-name">${esc(x.name || "Someone")}</span>${x.bio ? `<span class="fc-bio">${esc(x.bio)}</span>` : ""}<span class="fc-when">${esc(when)}</span></div></article>`;
+}
+
+function feedEvents() {
+  const groups = new Map();
+  (Feed.items || []).forEach(x => { const k = evKey(x.event); if (!k) return; const g = groups.get(k) || { key: k, title: x.event.trim(), summary: "", n: 0, last: 0 }; g.n++; g.last = Math.max(g.last, x.at); if (!g.summary && x.eventSummary) g.summary = x.eventSummary; groups.set(k, g); });
+  return [...groups.values()].sort((a, b) => b.n - a.n || b.last - a.last);
+}
+
+function feedView() {
+  const items = Feed.items || [];
+  const ev = Feed.event ? feedEvents().find(g => g.key === Feed.event) : null;
+  const shown = ev ? items.filter(x => evKey(x.event) === ev.key) : items;
+  let body;
+  if (!Feed.canRead()) body = `<div class="empty-lib"><div class="big">The Feed needs an account</div><div>Lines on the Feed come from signed-in people.</div></div>`;
+  else if (Feed.loading && !Feed.items) body = `<div class="empty-lib"><div>Loading the Feed…</div></div>`;
+  else if (Feed.error && !Feed.items) body = `<div class="empty-lib"><div class="big">Feed unavailable</div><div>${esc(Feed.error)}</div><div class="sec" style="justify-content:center"><button class="btn" type="button" data-feed-refresh>Try again</button></div></div>`;
+  else if (!shown.length) body = `<div class="empty-lib"><div class="big">Nothing here yet</div><div>Turn on "Post to Feed" when you write, or post a line from My lines.</div></div>`;
+  else body = `<div class="fcs">${shown.map(x => feedCard(x, !ev)).join("")}</div>`;
+  const events = feedEvents();
+  const me = Feed.me;
+  return `
+  <section class="stage" aria-label="Feed">
+    <div class="stage-top">
+      <div>${ev ? `<button class="linkish" type="button" data-ev="" style="margin-bottom:14px">← All of the Feed</button><h1>${esc(ev.title)}</h1><p class="sub">${ev.summary ? esc(ev.summary) : "What people took away."}</p><p class="hint" style="margin-top:10px">${ev.n} ${ev.n === 1 ? "line" : "lines"} from this event</p>` : `<h1>What stayed with people.</h1><p class="sub">One line each, from the events people went to.</p>`}</div>
+    </div>
+    ${body}
+  </section>
+  <aside class="col">
+    ${Feed.canPost() ? `<div class="card tint"><div class="cap">Your profile</div>${me && me.name ? `<div><div class="fc-name" style="font-size:18px">${esc(me.name)}</div>${me.bio ? `<p class="lead" style="margin-top:4px">${esc(me.bio)}</p>` : ""}</div>` : `<p class="lead">Add a name and a short bio to post on the Feed.</p>`}<div class="sec"><button class="btn" type="button" data-prof-edit>${me && me.name ? "Edit profile" : "Set up profile"}</button></div></div>` : ""}
+    <div class="card"><div class="cap">Events</div>${events.length ? `<div class="evlist">${events.slice(0, 20).map(g => `<button type="button" class="evrow" data-ev="${esc(g.key)}" aria-pressed="${Feed.event === g.key}"><span>${esc(g.title)}</span><span class="num">${g.n}</span></button>`).join("")}</div>` : `<p class="hint">Events show up here as people post.</p>`}<div class="sec"><button class="btn" type="button" data-feed-refresh ${Feed.loading ? "disabled" : ""}>${Feed.loading ? "Refreshing…" : "Refresh"}</button></div></div>
+  </aside>`;
+}
+
+function bindFeed() {
+  document.querySelectorAll("[data-ev]").forEach(b => b.addEventListener("click", () => { Feed.event = b.dataset.ev || null; mode = "feed"; render(); window.scrollTo(0, 0); }));
+  document.querySelectorAll("[data-feed-refresh]").forEach(b => b.addEventListener("click", refreshFeed));
+  document.querySelectorAll("[data-prof-edit]").forEach(b => b.addEventListener("click", async () => { await Feed.loadMe(); const p = await askProfile(); if (p) { toast("Profile saved"); render(); } }));
+  document.querySelectorAll("[data-tofeed]").forEach(c => c.addEventListener("change", async () => {
+    if (c.checked && !Feed.canPost()) { c.checked = false; toast(Store.configured ? "Sign in to post to the Feed" : "The Feed needs an account"); return; }
+    if (c.checked) { await Feed.loadMe(); if (!Feed.me || !Feed.me.name) { const p = await askProfile("Set up your Feed profile"); if (!p) { c.checked = false; return; } } }
+    S.toFeed = c.checked; save(); render();
+  }));
+  document.querySelectorAll("[data-feedpost]").forEach(b => b.addEventListener("click", async () => {
+    const it = S.lib.find(x => x.id === b.dataset.feedpost); if (!it) return;
+    b.disabled = true;
+    if (it.visibility === "public") await removeFromFeed(it); else await postToFeed(it);
+    b.disabled = false;
+  }));
 }
 
 /* ---------------- render ---------------- */
@@ -729,6 +929,7 @@ function composeView() {
       ${S.role === "mkt" ? `<div class="field"><label for="co" class="hint">Company or product to spotlight</label><input id="co" type="text" maxlength="60" value="${esc(S.company || "")}" placeholder="e.g. Lovable"><span class="hint">Leave blank to use the host or the company talked about most.</span></div>` : ""}
     </fieldset>
     <div class="card">
+      ${feedSwitch("tofeed")}
       ${ctaSwitch("cta")}
       <div class="meta"><span>Output: X post + LinkedIn post</span><span class="num">${[!!(s && s.text), !!S.takeaway.trim(), true].filter(Boolean).length}/3 ready</span></div>
       ${error ? `<div class="err">${esc(error)}</div>` : ""}
@@ -834,7 +1035,7 @@ function libraryView() {
       : `<div class="lines">${shown.map(x => `<article class="ln">
           <q>${esc(x.line)}</q>
           <div class="m"><span>${esc(fmtDate(x.at))}</span>${x.event ? `<span>${esc(x.event)}</span>` : ""}${[...(x.industries || []), ...(x.functions || [])].map(t => `<span class="t">${esc(t)}</span>`).join("")}${x.example ? '<span class="ex">example</span>' : ""}</div>
-          <div class="sec">${x.out ? `<button class="linkish" data-open="${x.id}" type="button">Open posts</button>` : ""}${x.example ? "" : `<button class="linkish" data-vis="${x.id}" type="button" aria-pressed="${x.visibility === "public"}" title="${x.visibility === "public" ? "Public: anyone can see this line" : "Private: only you can see this line"}">${x.visibility === "public" ? "Public" : "Private"}</button>`}<button class="linkish" data-del="${x.id}" type="button">Delete</button></div>
+          <div class="sec">${x.out ? `<button class="linkish" data-open="${x.id}" type="button">Open posts</button>` : ""}${x.example ? "" : `<button class="linkish" data-feedpost="${x.id}" type="button">${x.visibility === "public" ? "On the Feed · Remove" : "Post to Feed"}</button>`}<button class="linkish" data-del="${x.id}" type="button">Delete</button></div>
         </article>`).join("")}</div>`;
 
   return `
@@ -865,9 +1066,10 @@ let mode = S.out ? "result" : "compose";
 function render() {
   const main = $("#main");
   const focusId = document.activeElement && document.activeElement.id;
-  main.innerHTML = mode === "result" ? resultView() : mode === "library" ? libraryView() : composeView();
+  main.innerHTML = mode === "result" ? resultView() : mode === "library" ? libraryView() : mode === "feed" ? feedView() : composeView();
+  $("#feedbtn").setAttribute("aria-pressed", String(mode === "feed")); $("#lib").setAttribute("aria-pressed", String(mode === "library"));
   $("#lib-n").textContent = S.lib.length ? S.lib.length : "";
-  bind();
+  bind(); bindFeed();
   if (focusId && $("#" + focusId)) { const el = $("#" + focusId); el.focus(); if (el.setSelectionRange && el.value) el.setSelectionRange(el.value.length, el.value.length); }
   drawWave();
 }
@@ -978,12 +1180,6 @@ function bind() {
     S.source = { kind: "text", name: it.sourceName || "Saved line", text: "", words: 0 };
     S.out = JSON.parse(JSON.stringify(it.out)); S.tab = "x"; mode = "result"; save(); render(); window.scrollTo(0, 0);
   }));
-  document.querySelectorAll("[data-vis]").forEach(b => b.addEventListener("click", () => {
-    const it = S.lib.find(x => x.id === b.dataset.vis); if (!it) return;
-    it.visibility = it.visibility === "public" ? "private" : "public"; save(); render();
-    toast(it.visibility === "public" ? "Public" : "Private");
-    persist(remote.update(it.id, { visibility: it.visibility }));
-  }));
   document.querySelectorAll("[data-del]").forEach(b => b.addEventListener("click", () => {
     if (!b.dataset.armed) { b.dataset.armed = "1"; b.textContent = "Tap again to delete"; return; }
     const gone = S.lib.find(x => x.id === b.dataset.del);
@@ -1040,9 +1236,11 @@ async function write() {
     const li = rl && rl.linkedin ? String(rl.linkedin).trim() : "";
     if (!x.length || !li) throw { code: "invalid_json" };
     S.out = { x, linkedin: li };
-    const entry = { id: newId(), line: S.takeaway.trim(), event: S.meta.event.trim(), industries: [...S.meta.industries], functions: [...S.meta.functions], role: S.role, sourceName: S.source.name, at: Date.now(), out: JSON.parse(JSON.stringify(S.out)), visibility: "private" };
-    S.lib.unshift(entry); persist(remote.add(entry));
+    const entry = { id: newId(), line: S.takeaway.trim(), event: S.meta.event.trim(), eventSummary: String((plan && plan.event_summary) || "").slice(0, 200), industries: [...S.meta.industries], functions: [...S.meta.functions], role: S.role, sourceName: S.source.name, at: Date.now(), out: JSON.parse(JSON.stringify(S.out)), visibility: "private" };
+    S.lib.unshift(entry);
+    if (synced()) { const pr = remote.add(entry); pendingAdds.set(entry.id, pr.catch(() => {})); persist(pr); }
     save();
+    if (S.toFeed) postToFeed(entry);
   } catch (e) { error = errCopy(e); mode = "compose"; }
   busy = false; stage = ""; render();
 }
@@ -1050,6 +1248,12 @@ async function write() {
 /* ---------------- header ---------------- */
 $("#file").addEventListener("change", e => { pasting = false; takeFile(e.target.files[0]); e.target.value = ""; });
 $("#lib").addEventListener("click", () => { mode = mode === "library" ? (S.out ? "result" : "compose") : "library"; render(); window.scrollTo(0, 0); });
+$("#feedbtn").addEventListener("click", () => {
+  if (mode === "feed") { mode = S.out ? "result" : "compose"; render(); return; }
+  mode = "feed"; Feed.event = null; render(); window.scrollTo(0, 0);
+  Feed.loadMe().then(() => { if (mode === "feed") render(); });
+  refreshFeed();
+});
 $("#how").addEventListener("click", () => { guideOpen = !guideOpen; $("#how").setAttribute("aria-expanded", String(guideOpen)); if (mode !== "compose") mode = "compose"; render(); });
 $("#restart").addEventListener("click", () => { const role = S.role, lib = S.lib, company = S.company, cta = S.cta; S = blank(); S.role = role; S.lib = lib; S.company = company; S.cta = cta; mode = "compose"; error = ""; pasting = false; save(); render(); });
 function tick() { const d = new Date(); let h = d.getHours(); const ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12; $("#clock").innerHTML = `${String(h).padStart(2, "0")}.${String(d.getMinutes()).padStart(2, "0")}<small>${ap}</small>`; }

@@ -22,7 +22,8 @@ Built for people in the Bay Area startup scene (job seekers, marketers, founders
    - **X**: one short post, your line polished to sound native to X (ideally under 140 characters). "Copy & open X" opens the composer with it filled in.
    - **LinkedIn**: one post with a preview of what shows before "see more" and a character count.
    - Rewrites: Shorter / Punchier / Drier / Another take on X; Shorter / Sharper opening / More personal / More casual on LinkedIn.
-7. **My lines**: every line you have written, with date, event and tags. Filter by industry or function, see where your thinking concentrates, and reopen the posts made from any line. Each line is Private by default; switch it to Public to share it (public lines will power per-event pages and the host view next).
+7. **My lines**: every line you have written, with date, event and tags. Filter by industry or function, see where your thinking concentrates, and reopen the posts made from any line. "Post to Feed" shares a line; "On the Feed · Remove" takes it down.
+8. **Feed**: one card per shared line, with the event name, a one-line summary of what the event was about, the line in large type, and the author's name and bio. Click an event to see every line people shared from it, grouped by event name. Posting is off by default: turn on "Post to Feed" before writing, or post later from My lines. The first time, you set a name and a short bio (like an X profile).
 
 How posts are written: a planning pass first restates what your line claims and picks at most two details from the transcript that directly prove it (rejecting vivid but off-topic or contradictory ones, and anything that may be a transcription error). The writers only see that plan, not the raw transcript. Each writer drafts, checks every sentence against the thesis, and returns the edited version.
 
@@ -37,7 +38,7 @@ src/app.html         The whole app (HTML/CSS/JS in one file). Can be published a
 public/index.html    Standalone page for your own site (build.sh wraps src/app.html in a full HTML document).
 api/generate.js      Post generation via the Anthropic API (ANTHROPIC_API_KEY).
 api/transcribe.js    Speech-to-text via the OpenAI Whisper API (OPENAI_API_KEY).
-supabase/schema.sql  Database table and row-level security.
+supabase/schema.sql  Tables (lines, profiles, feed_posts) and row-level security.
 vercel.json          Build command and output folder for Vercel.
 assets/              Logo: logo-mark.svg, logo-mark-white.svg, app-icon.svg, favicon.svg.
 build.sh             Builds public/index.html.
