@@ -26,6 +26,8 @@ Built for people in the Bay Area startup scene (job seekers, marketers, founders
 
 How posts are written: a planning pass first restates what your line claims and picks at most two details from the transcript that directly prove it (rejecting vivid but off-topic or contradictory ones, and anything that may be a transcription error). The writers only see that plan, not the raw transcript. Each writer drafts, checks every sentence against the thesis, and returns the edited version.
 
+Logo: an H whose right stroke is a fountain pen nib, with a sparkle as the dot of an exclamation point (H!). Files are in `assets/`.
+
 Design: monochrome, one large stage panel with a column of cards on the right. Light and dark themes.
 
 ## Project structure
@@ -37,6 +39,7 @@ api/generate.js      Post generation via the Anthropic API (ANTHROPIC_API_KEY).
 api/transcribe.js    Speech-to-text via the OpenAI Whisper API (OPENAI_API_KEY).
 supabase/schema.sql  Database table and row-level security.
 vercel.json          Build command and output folder for Vercel.
+assets/              Logo: logo-mark.svg, logo-mark-white.svg, app-icon.svg, favicon.svg.
 build.sh             Builds public/index.html.
 ```
 

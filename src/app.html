@@ -44,9 +44,8 @@ button { cursor: pointer; }
 .bar-l { display: flex; align-items: center; gap: 28px; }
 .clock { font-size: 24px; font-weight: 400; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
 .clock small { font-size: 14px; color: var(--muted); margin-left: 4px; }
-.brand { display: flex; align-items: center; gap: 8px; font-size: 22px; font-weight: 500; letter-spacing: -.02em; }
-.brand i { width: 22px; height: 22px; border-radius: 50%; background: var(--ink); position: relative; display: inline-block; }
-.brand i::after { content: ""; position: absolute; right: -3px; top: 6px; width: 10px; height: 10px; border-radius: 50%; background: var(--sheet); border: 2px solid var(--panel-2); }
+.brand { display: flex; align-items: center; gap: 10px; font-size: 22px; font-weight: 500; letter-spacing: -.02em; }
+.brand .mark { height: 30px; width: auto; flex: none; }
 .bar-r { display: flex; gap: 10px; flex-wrap: wrap; }
 .pill { border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 9px 20px; color: var(--muted); font-size: 15px; display: inline-flex; align-items: center; gap: 8px; }
 .pill:hover { color: var(--ink); }
@@ -220,7 +219,7 @@ button { cursor: pointer; }
     <header class="bar">
       <div class="bar-l">
         <div class="clock" id="clock" aria-hidden="true"></div>
-        <div class="brand"><i aria-hidden="true"></i>Human Takeaway</div>
+        <div class="brand"><svg class="mark" viewBox="-20 10 900 1080" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="64" stroke-linecap="round" stroke-linejoin="round"><path d="M285 60 C270 300 220 550 150 1030"></path><path d="M815 425 L490 452 C400 466 150 540 48 588 C18 604 60 626 120 626 C262 626 420 584 490 455"></path><path d="M818 112 C838 125 836 150 815 162 C745 200 695 270 676 370 C656 480 630 650 597 830 C585 650 582 480 600 360 C620 240 690 160 778 110 C792 102 808 104 818 112 Z" fill="currentColor" stroke-width="16"></path><path d="M598 873 Q614 962 680 978 Q614 994 598 1083 Q582 994 516 978 Q582 962 598 873 Z" fill="currentColor" stroke="none"></path></svg>Human Takeaway</div>
       </div>
       <div class="bar-r">
         <button class="pill" id="lib" type="button">my lines <span class="num" id="lib-n"></span></button>
