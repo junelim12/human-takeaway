@@ -62,7 +62,8 @@ button { cursor: pointer; }
 .clock small { font-size: 14px; color: var(--muted); margin-left: 4px; }
 .brand { display: flex; align-items: center; gap: 10px; font-size: 22px; font-weight: 500; letter-spacing: -.02em; }
 .brand .mark { height: 30px; width: auto; flex: none; }
-.bar-r { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.bar-r { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-left: auto; }
+.bar-end { display: flex; align-items: center; gap: 10px; }
 .pill { border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 9px 20px; color: var(--muted); font-size: 15px; display: inline-flex; align-items: center; gap: 8px; }
 .pill:hover { color: var(--ink); }
 .pill svg { width: 12px; height: 12px; }
@@ -216,9 +217,9 @@ button { cursor: pointer; }
 .ln .m .ex { font-family: var(--mono); font-size: 11px; border: 1px dashed var(--faint); border-radius: 4px; padding: 0 5px; }
 .ln button.linkish { font-size: 13px; color: var(--muted); }
 .bars { display: grid; gap: 10px; }
-.bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; font-size: 14px; }
-.bar .track { grid-column: 1 / -1; height: 6px; border-radius: 3px; background: var(--panel-2); overflow: hidden; }
-.bar .fill { height: 100%; background: var(--ink); border-radius: 3px; }
+.hbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; font-size: 14px; }
+.hbar .track { grid-column: 1 / -1; height: 6px; border-radius: 3px; background: var(--panel-2); overflow: hidden; }
+.hbar .fill { height: 100%; background: var(--ink); border-radius: 3px; }
 .filters { display: grid; gap: 10px; }
 .empty-lib { flex: 1; display: grid; place-content: center; text-align: center; gap: 8px; color: var(--muted); min-height: 260px; }
 .empty-lib .big { font-size: 22px; color: var(--ink); }
@@ -256,6 +257,38 @@ button { cursor: pointer; }
 .modal h2 { font-size: 22px; font-weight: 500; letter-spacing: -.02em; }
 .btn.primary { background: var(--btn); color: var(--btn-ink); border-color: var(--btn); }
 
+/* phone layout */
+.mbar { display: none; position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; padding: 12px max(16px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); background: color-mix(in srgb, var(--sheet) 90%, transparent); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border-top: 1px solid var(--line); }
+.mbar .go { box-shadow: none; }
+@media (max-width: 720px) {
+  .bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px 12px; padding-inline: 0; }
+  .bar-l { min-width: 0; }
+  .brand { white-space: nowrap; font-size: 20px; }
+  .bar-end { grid-column: 2; grid-row: 1; }
+  .bar-sep { display: none; }
+  .bar-r { grid-column: 1 / -1; grid-row: 2; margin: 0 -16px; padding: 2px 16px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .bar-r::-webkit-scrollbar { display: none; }
+  .bar-r .pill { flex: none; }
+}
+@media (max-width: 560px) {
+  .outer { padding: 0; }
+  .sheet { border-radius: 0; min-height: 100vh; padding: 14px max(16px, env(safe-area-inset-right, 0px)) calc(104px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+  input, textarea, select { font-size: 16px; }
+  .stage { gap: 20px; }
+  .stage .sub { margin-top: 10px; }
+  .drop { min-height: 150px; padding: 22px 16px; }
+  .paste { min-height: 140px; }
+  .excerpt { max-height: 96px; }
+  .oneliner { font-size: 24px; }
+  .gauges { display: none; }
+  .col .go { display: none; }
+  .mbar { display: flex; }
+  .mbar .go { display: flex; }
+  .fc-line { font-size: 22px; }
+  .modal { padding: 22px; border-radius: 20px; }
+  .toast { bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
+}
+
 .toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--btn); color: var(--btn-ink); padding: 10px 18px; border-radius: 999px; font-size: 14px; z-index: 30; max-width: calc(100% - 32px); }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .guide { display: grid; gap: 10px; }
@@ -268,12 +301,14 @@ button { cursor: pointer; }
         <div class="clock" id="clock" aria-hidden="true"></div>
         <div class="brand"><svg class="mark" viewBox="-20 10 900 1080" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="64" stroke-linecap="round" stroke-linejoin="round"><path d="M285 60 C270 300 220 550 150 1030"></path><path d="M815 425 L490 452 C400 466 150 540 48 588 C18 604 60 626 120 626 C262 626 420 584 490 455"></path><path d="M818 112 C838 125 836 150 815 162 C745 200 695 270 676 370 C656 480 630 650 597 830 C585 650 582 480 600 360 C620 240 690 160 778 110 C792 102 808 104 818 112 Z" fill="currentColor" stroke-width="16"></path><path d="M598 873 Q614 962 680 978 Q614 994 598 1083 Q582 994 516 978 Q582 962 598 873 Z" fill="currentColor" stroke="none"></path></svg>Human Takeaway</div>
       </div>
-      <div class="bar-r">
+      <nav class="bar-r" aria-label="Sections">
         <button class="pill" id="feedbtn" type="button">feed</button>
         <button class="pill" id="lib" type="button">my lines <span class="num" id="lib-n"></span></button>
         <button class="pill" id="how" type="button" aria-expanded="false">how it works <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3 4.5 6 7.5 9 4.5"/></svg></button>
         <button class="pill" id="restart" type="button">new upload</button>
         <button class="pill" id="acct" type="button" hidden>sign in</button>
+      </nav>
+      <div class="bar-end">
         <span class="bar-sep" id="theme-sep" hidden aria-hidden="true"></span>
         <button class="iconbtn" id="theme" type="button" hidden aria-label="Switch to dark mode"><svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"></path></svg><svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"></path></svg></button>
       </div>
@@ -282,6 +317,7 @@ button { cursor: pointer; }
   </div>
 </div>
 <input type="file" id="file" class="sr" accept=".txt,.md,.srt,.vtt,text/plain,audio/*,.m4a,.mp3,.wav,.webm,.ogg">
+<div class="mbar" id="mbar" hidden></div>
 <div id="modal-root"></div>
 <div id="toast-root" aria-live="polite"></div>
 
@@ -1093,7 +1129,7 @@ function libraryView() {
   const count = (key, list) => list.map(t => [t, all.filter(x => (x[key] || []).includes(t)).length]).filter(([, n]) => n).sort((a, b) => b[1] - a[1]);
   const inds = count("industries", INDUSTRIES), fns = count("functions", FUNCTIONS);
   const max = Math.max(1, ...inds.map(x => x[1]), ...fns.map(x => x[1]));
-  const bars = (rows) => rows.length ? rows.map(([t, n]) => `<div class="bar"><span>${esc(t)}</span><span class="num">${n}</span><div class="track"><div class="fill" style="width:${n / max * 100}%"></div></div></div>`).join("") : `<p class="hint">Nothing tagged yet.</p>`;
+  const bars = (rows) => rows.length ? rows.map(([t, n]) => `<div class="hbar"><span>${esc(t)}</span><span class="num">${n}</span><div class="track"><div class="fill" style="width:${n / max * 100}%"></div></div></div>`).join("") : `<p class="hint">Nothing tagged yet.</p>`;
   const fmtDate = (t) => new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   const label = [filt.industry, filt.func].filter(Boolean).join(" · ");
   const hasEx = all.some(x => x.example);
@@ -1132,6 +1168,19 @@ function libraryView() {
   </aside>`;
 }
 
+function syncGo() { const off = !ready() || busy; const g = $("#go"); if (g) g.disabled = off; const m = $("#mgo"); if (m) m.disabled = off; }
+function renderMbar() {
+  const mb = $("#mbar");
+  if (mode === "compose") {
+    mb.hidden = false;
+    mb.innerHTML = `<button class="go" type="button" id="mgo" ${ready() && !busy ? "" : "disabled"}>${busy ? "writing…" : "write posts."}</button>`;
+    $("#mgo").onclick = () => write();
+  } else if (mode === "result" && S.out && !busy) {
+    mb.hidden = false;
+    mb.innerHTML = `<button class="go" type="button" id="mopen">copy &amp; open ${S.tab === "x" ? "X" : "LinkedIn"}.</button>`;
+    $("#mopen").onclick = () => $("#open")?.click();
+  } else { mb.hidden = true; mb.innerHTML = ""; }
+}
 let mode = S.out ? "result" : "compose";
 function render() {
   const main = $("#main");
@@ -1139,7 +1188,7 @@ function render() {
   main.innerHTML = mode === "result" ? resultView() : mode === "library" ? libraryView() : mode === "feed" ? feedView() : composeView();
   $("#feedbtn").setAttribute("aria-pressed", String(mode === "feed")); $("#lib").setAttribute("aria-pressed", String(mode === "library"));
   $("#lib-n").textContent = S.lib.length ? S.lib.length : "";
-  bind(); bindFeed();
+  bind(); bindFeed(); renderMbar();
   if (focusId && $("#" + focusId)) { const el = $("#" + focusId); el.focus(); if (el.setSelectionRange && el.value) el.setSelectionRange(el.value.length, el.value.length); }
   drawWave();
 }
@@ -1171,7 +1220,7 @@ function bind() {
       if (!wasPasted) S.meta = { ...blankMeta(), event: S.meta.event };
       S.source = { kind: "text", name: "Pasted transcript", text: v, words: words(v) }; S.out = null; save();
       if (!wasPasted) { render(); return; }          // first text in: show the event card and status once
-      const g = $("#go"); if (g) g.disabled = !ready() || busy;
+      syncGo();
       const lead = document.querySelector(".card.tint .lead"); if (lead) lead.textContent = S.source.words.toLocaleString() + " words";
     };
     pa.addEventListener("input", () => {
@@ -1194,7 +1243,7 @@ function bind() {
     line.addEventListener("input", () => {
       S.takeaway = line.value; save(); fit();
       const cnt = line.closest(".inset").querySelector(".note"); cnt.textContent = line.value.length + "/140";
-      $("#go").disabled = !ready() || busy;
+      syncGo();
       const r = document.querySelector(".meta .num"); if (r) r.textContent = [!!(S.source && S.source.text), !!S.takeaway.trim(), true].filter(Boolean).length + "/3 ready";
     });
     const nope = (e) => { e.preventDefault(); const h = $("#line-hint"); h.textContent = "Pasting is off for this line. Type it in your own words."; h.style.color = "var(--ink)"; toast("Type this one yourself"); };
